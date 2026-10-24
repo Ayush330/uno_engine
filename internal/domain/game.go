@@ -263,3 +263,56 @@ func (g *GameState) DrawCard(playerID int) error {
 	}
 	return nil
 }
+
+func (g *GameState) IsGameOver() bool {
+	return g.stateName == StateGameOver
+}
+
+type GetGameSnapShot struct {
+	PlayerId     int          `json:"playerId"`
+	TurnPlayerID int          `json:"turnPlayerId"`
+	ActiveColor  Color        `json:"activeColor"`
+	Direction    Direction    `json:"direction"`
+	DiscardPile  Card         `json:"discardPile"`
+	DrawPile     int          `json:"drawPile"`
+	Players      []PlayerInfo `json:"players"`
+}
+
+type PlayerInfo struct {
+	PlayerId      int    `json:"playerId"`
+	PlayerName    string `json:"playerName"`
+	IsActive      bool   `json:"isActive"`
+	HandCardCount int    `json:"handCardCount"`
+	HandCards     []Card `json:"handCards"`
+}
+
+func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
+	pInfo := make([]PlayerInfo, len(g.players))
+	for i := 0; i < len(g.players); i++ {
+		playerHandCards := []Card{}
+		if g.players[i].id == playerID {
+			playerHandCards = g.players[i].handCards
+		}
+		info := PlayerInfo{
+			PlayerId:      g.players[i].id,
+			PlayerName:    g.players[i].name,
+			IsActive:      !g.players[i].FinishedPlaying(),
+			HandCardCount: len(g.players[i].handCards),
+			HandCards:     playerHandCards,
+		}
+		pInfo[i] = info
+	}
+	turnPlayerID := -1
+	if g.currentTurnIndex != -1 {
+		turnPlayerID = g.players[g.currentTurnIndex].id
+	}
+	return &GetGameSnapShot{
+		PlayerId:     playerID,
+		TurnPlayerID: turnPlayerID,
+		ActiveColor:  g.discardPile.ActiveColor(),
+		Direction:    g.direction,
+		DiscardPile:  g.discardPile.cards[len(g.discardPile.cards)-1],
+		DrawPile:     len(g.drawpile.cards),
+		Players:      pInfo,
+	}
+}

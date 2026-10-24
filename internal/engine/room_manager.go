@@ -1,4 +1,4 @@
-package domain
+package engine
 
 import (
 	"errors"
@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrRoomAlreadyExists = errors.New("domain: Room Already Exists")
-	ErrRoomNotFound      = errors.New("domain: Room Not Found")
+	ErrRoomAlreadyExists = errors.New("engine: Room Already Exists")
+	ErrRoomNotFound      = errors.New("engine: Room Not Found")
 )
 
 type RoomManager struct {

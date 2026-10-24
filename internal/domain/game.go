@@ -9,6 +9,7 @@ type Direction int8
 type StateName uint8
 
 var (
+	ErrGameNotStarted        = errors.New("domain: game has not started yet")
 	ErrNotEnoughPlayers      = errors.New("domain: at least 2 players required to start")
 	ErrGameAlreadyStarted    = errors.New("domain: game has already started")
 	ErrCannotDistributeCards = errors.New("domain: cannot distribute cards")

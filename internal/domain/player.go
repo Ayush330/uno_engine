@@ -7,17 +7,27 @@ var (
 )
 
 type Player struct {
-	name      string // Name of the player
-	handCards []Card // hand cards for the player
-	id        int    // seat index for player
+	name            string // Name of the player
+	handCards       []Card // hand cards for the player
+	id              int    // seat index for player
+	finishedPlaying bool
 }
 
 func CreateNewPlayer(name string, id int) *Player {
 	return &Player{
-		name:      name,
-		handCards: make([]Card, 0),
-		id:        id,
+		name:            name,
+		handCards:       make([]Card, 0),
+		id:              id,
+		finishedPlaying: false,
 	}
+}
+
+func (p *Player) UpdateFinishedPlaying(status bool) {
+	p.finishedPlaying = status
+}
+
+func (p *Player) FinishedPlaying() bool {
+	return p.finishedPlaying
 }
 
 func (p *Player) AddCardToHand(card Card) {

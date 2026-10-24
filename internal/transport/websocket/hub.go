@@ -121,15 +121,24 @@ func (h *Hub) readPump(room *engine.Room, roomID string, playerID int, conn *web
 		if err != nil {
 			break
 		}
+		var actionErr error
 		switch action.Action {
 		case "START_GAME":
-			_ = room.StartGame(playerID)
+			actionErr = room.StartGame(playerID)
 		case "PLAY_CARD":
-			_ = room.PlayCard(playerID, action.Card, action.Color)
+			actionErr = room.PlayCard(playerID, action.Card, action.Color)
 		case "DRAW_CARD":
-			_ = room.DrawCard(playerID)
-
+			actionErr = room.DrawCard(playerID)
 		}
+
+		if actionErr != nil {
+			_ = conn.WriteJSON(map[string]any{
+				"type":    "ERROR",
+				"message": actionErr.Error(),
+			})
+			continue // Do not broadcast on error
+		}
+
 		h.BroadCast(roomID)
 	}
 }

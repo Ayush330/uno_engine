@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 )
 
@@ -45,6 +46,7 @@ type GameState struct {
 	direction        Direction
 	currentTurnIndex int
 	stateName        StateName
+	lastAction       string
 }
 
 func NewGameState(id int) *GameState {
@@ -78,6 +80,7 @@ func NewGameState(id int) *GameState {
 		direction:        CLOCKWISE,
 		currentTurnIndex: -1,
 		stateName:        StateWaitingForPlayers,
+		lastAction:       "Waiting for players to join...",
 	}
 }
 
@@ -114,6 +117,7 @@ func (g *GameState) GameStart() error {
 	}
 	g.stateName = StateWaitingForTurn
 	g.currentTurnIndex = 0
+	g.lastAction = fmt.Sprintf("Game started! 7 cards dealt to all players. %s's turn.", g.players[0].name)
 	return nil
 }
 
@@ -141,9 +145,26 @@ func (g *GameState) PlayCard(playerId int, card Card, color Color) error {
 	if err != nil {
 		return err
 	}
+
+	// Record action message for player display
+	switch card.Kind() {
+	case KindWild:
+		g.lastAction = fmt.Sprintf("%s played Wild! Active color set to %s.", currentPlayer.name, color)
+	case KindWildDrawFour:
+		g.lastAction = fmt.Sprintf("%s played Wild Draw 4! Active color is %s.", currentPlayer.name, color)
+	case KindDrawTwo:
+		g.lastAction = fmt.Sprintf("%s played %s Draw 2!", currentPlayer.name, card.Color())
+	case KindSkip:
+		g.lastAction = fmt.Sprintf("%s played %s Skip!", currentPlayer.name, card.Color())
+	case KindReverse:
+		g.lastAction = fmt.Sprintf("%s played %s Reverse!", currentPlayer.name, card.Color())
+	default:
+		g.lastAction = fmt.Sprintf("%s played %s %d.", currentPlayer.name, card.Color(), card.Value())
+	}
+
 	// remove the player from game if it has no cards
 	if len(player.handCards) == 0 {
-		// remove player from
+		g.lastAction = fmt.Sprintf("🏆 %s has 0 cards and won the game!", currentPlayer.name)
 		currentPlayer.UpdateFinishedPlaying(true)
 	}
 	var countOfActivePlayers int
@@ -259,6 +280,7 @@ func (g *GameState) DrawCard(playerID int) error {
 	err = g.PlayCard(playerID, card[0], color)
 	if err != nil {
 		// Card was NOT played: just pass turn to next player normally!
+		g.lastAction = fmt.Sprintf("%s drew a card and passed.", player.name)
 		g.currentTurnIndex = findNextPlayerIndex(g.currentTurnIndex, g.direction, g.players)
 	}
 	return nil
@@ -276,6 +298,7 @@ type GetGameSnapShot struct {
 	DiscardPile  Card         `json:"discardPile"`
 	DrawPile     int          `json:"drawPile"`
 	Players      []PlayerInfo `json:"players"`
+	LastAction   string       `json:"lastAction"`
 }
 
 type PlayerInfo struct {
@@ -314,5 +337,6 @@ func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
 		DiscardPile:  g.discardPile.cards[len(g.discardPile.cards)-1],
 		DrawPile:     len(g.drawpile.cards),
 		Players:      pInfo,
+		LastAction:   g.lastAction,
 	}
 }

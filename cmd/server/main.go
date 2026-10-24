@@ -18,6 +18,11 @@ func main() {
 	hub := customws.CreateNewHub(roomManager)
 	mux.HandleFunc("/ws", hub.ServeWs)
 
+	// 3. Static Web Client
+	// Using AI for this.....
+	fs := http.FileServer(http.Dir("./web"))
+	mux.Handle("/", fs)
+
 	log.Println("UNO Engine server started on http://localhost:8080")
 	if err := http.ListenAndServe(":8080", enableCORS(mux)); err != nil {
 		log.Fatalf("Server failed to start: %v", err)

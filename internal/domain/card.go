@@ -66,9 +66,9 @@ func (k Kind) String() string {
 }
 
 type Card struct {
-	cardColor Color
-	cardKind  Kind
-	cardValue Value
+	CardColor Color `json:"color"`
+	CardKind  Kind  `json:"kind"`
+	CardValue Value `json:"value"`
 }
 
 type ValidCard interface {
@@ -76,13 +76,13 @@ type ValidCard interface {
 }
 
 func (c Card) String() string {
-	switch c.cardKind {
+	switch c.CardKind {
 	case KindNumber:
-		return fmt.Sprintf("%s %d", c.cardColor, c.cardValue)
+		return fmt.Sprintf("%s %d", c.CardColor, c.CardValue)
 	case KindSkip, KindReverse, KindDrawTwo:
-		return fmt.Sprintf("%s %s", c.cardColor, c.cardKind)
+		return fmt.Sprintf("%s %s", c.CardColor, c.CardKind)
 	case KindWild, KindWildDrawFour:
-		return c.cardKind.String()
+		return c.CardKind.String()
 	default:
 		return "Invalid Card"
 	}
@@ -96,15 +96,15 @@ var (
 )
 
 func (c Card) Color() Color {
-	return c.cardColor
+	return c.CardColor
 }
 
 func (c Card) Value() Value {
-	return c.cardValue
+	return c.CardValue
 }
 
 func (c Card) Kind() Kind {
-	return c.cardKind
+	return c.CardKind
 }
 
 func (c Card) IsValid() bool {
@@ -142,7 +142,7 @@ func NewNumberCard(color Color, value Value) (Card, error) {
 		return Card{}, ErrInvalidValue
 	}
 
-	return Card{cardColor: color, cardKind: KindNumber, cardValue: value}, nil
+	return Card{CardColor: color, CardKind: KindNumber, CardValue: value}, nil
 }
 
 func NewActionCard(color Color, kind Kind) (Card, error) {
@@ -152,7 +152,7 @@ func NewActionCard(color Color, kind Kind) (Card, error) {
 
 	switch kind {
 	case KindSkip, KindReverse, KindDrawTwo:
-		return Card{cardColor: color, cardKind: kind, cardValue: 0}, nil
+		return Card{CardColor: color, CardKind: kind, CardValue: 0}, nil
 	default:
 		return Card{}, ErrInvalidKind
 	}
@@ -161,7 +161,7 @@ func NewActionCard(color Color, kind Kind) (Card, error) {
 func NewWildCard(kind Kind) (Card, error) {
 	switch kind {
 	case KindWild, KindWildDrawFour:
-		return Card{cardColor: NoColor, cardKind: kind, cardValue: 0}, nil
+		return Card{CardColor: NoColor, CardKind: kind, CardValue: 0}, nil
 	default:
 		return Card{}, ErrInvalidKind
 	}
@@ -171,7 +171,7 @@ func NewWildCard(kind Kind) (Card, error) {
 // This means that can this card be played upon the current topCard
 
 func (c Card) CanPlayOn(topCard Card) bool {
-	switch c.cardKind {
+	switch c.CardKind {
 	case KindNumber:
 		if c.Color() == topCard.Color() {
 			return true

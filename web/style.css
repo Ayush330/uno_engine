@@ -1536,7 +1536,7 @@ html, body {
 }
 
 .seat-north {
-    top: 14px;
+    top: 76px;
     left: 50%;
     transform: translateX(-50%);
 }
@@ -2388,22 +2388,22 @@ html, body {
     }
 
     .table-center-piles {
-        gap: 1.25rem;
-        transform: translate(-50%, -50%) scale(0.85);
+        gap: 1.15rem;
+        transform: translate(-50%, -50%) scale(0.82);
     }
 
     .card {
-        width: 66px;
-        height: 100px;
+        width: 64px;
+        height: 98px;
     }
 
     .card .card-oval {
-        width: 46px;
-        height: 70px;
+        width: 44px;
+        height: 68px;
     }
 
     .card .card-center-val {
-        font-size: 2.1rem;
+        font-size: 2rem;
     }
 
     .seat-west {
@@ -2414,66 +2414,109 @@ html, body {
         right: 6px;
     }
 
+    /* Move North Seat down so it sits cleanly below the Turn Banner with zero overlap */
     .seat-north {
-        top: 56px;
+        top: 102px;
     }
 
-    .my-hand-container-3d {
-        height: 135px;
-        padding-bottom: 0.25rem;
-    }
-
-    .my-hand-container-3d .card {
-        margin: 0 -16px;
-    }
-
+    /* Two-Tier Top HUD on Mobile: Controls in Row 1, Turn Banner centered in Row 2 */
     .hud-top-bar {
         top: 8px;
         left: 10px;
         right: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        row-gap: 6px;
     }
 
-    .hud-bottom-bar {
-        bottom: 8px;
-        left: 10px;
-        right: 10px;
-    }
-
-    .hud-bottom-left {
-        padding: 0.35rem 0.75rem;
-        font-size: 0.75rem;
-    }
-
-    .btn-hud-draw, .btn-hud-uno, .btn-hud-pass {
-        padding: 0.45rem 1rem;
-        font-size: 0.82rem;
+    .hud-top-left {
+        order: 1;
+        padding: 0.28rem 0.65rem 0.28rem 0.35rem;
     }
 
     .hud-mode-name {
         display: none;
     }
 
-    .turn-status-banner {
-        padding: 0.28rem 0.65rem;
+    .hud-top-right {
+        order: 2;
         gap: 0.4rem;
     }
 
+    .hud-icon-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+
+    .hud-top-center {
+        order: 3;
+        width: 100%;
+        position: static;
+        transform: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 2px;
+    }
+
+    .turn-status-banner {
+        padding: 0.32rem 0.85rem;
+        gap: 0.45rem;
+        max-width: 95%;
+    }
+
     .turn-status-text {
-        font-size: 0.74rem;
-        max-width: 140px;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 0.78rem;
+        max-width: none;
     }
 
     .turn-timer-badge {
-        font-size: 0.72rem;
-        padding: 0.1rem 0.4rem;
+        font-size: 0.76rem;
+        padding: 0.1rem 0.45rem;
         min-width: 32px;
     }
 
     .turn-timer-track {
-        max-width: 130px;
+        max-width: 160px;
         height: 3px;
+    }
+
+    /* Bottom HUD: elevate Action Buttons above the hand so they NEVER touch cards */
+    .hud-bottom-bar {
+        bottom: 128px;
+        left: 10px;
+        right: 10px;
+        justify-content: flex-end;
+    }
+
+    .hud-bottom-left {
+        display: none !important;
+    }
+
+    .btn-hud-draw, .btn-hud-uno, .btn-hud-pass {
+        padding: 0.42rem 0.95rem;
+        font-size: 0.82rem;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+    }
+
+    .seat-south {
+        bottom: 6px;
+    }
+
+    .my-player-badge {
+        margin-bottom: 0.2rem;
+    }
+
+    .my-hand-container-3d {
+        height: 128px;
+        padding-bottom: 0.2rem;
+    }
+
+    .my-hand-container-3d .card {
+        margin: 0 -16px;
     }
 }
 

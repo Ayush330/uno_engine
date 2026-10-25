@@ -179,6 +179,16 @@ func (r *Room) SetNotifier(fn func(string)) {
 	r.handleTimeout = fn
 }
 
+func (r *Room) Close() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.roomState = RoomStateEnd
+	if r.turnTimer != nil {
+		r.turnTimer.Stop()
+		r.turnTimer = nil
+	}
+}
+
 func (r *Room) resetTurnTimer() {
 	if r.turnTimer != nil {
 		r.turnTimer.Stop()
@@ -188,7 +198,6 @@ func (r *Room) resetTurnTimer() {
 	}
 	r.turnSeq++
 	currentSeq := r.turnSeq
-	// 15 seconds client time + 2.5 seconds network buffer = 17.5s total!
 	r.turnTimer = time.AfterFunc(17500*time.Millisecond, func() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
@@ -209,11 +218,11 @@ func (r *Room) resetTurnTimer() {
 			}
 			return
 		}
-		// Reset timer for the next player!
-		r.resetTurnTimer()
-		// Trigger broadcast so all connected players see the move!
+		// Trigger broadcast so all connected players see the move immediately!
 		if r.handleTimeout != nil {
 			go r.handleTimeout(r.id)
 		}
+		// Reset timer for the next player!
+		r.resetTurnTimer()
 	})
 }

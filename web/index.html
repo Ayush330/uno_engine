@@ -119,7 +119,24 @@
                     </div>
                 </div>
 
-                <div class="table-surface glass-panel">
+                <div class="table-surface glass-panel" id="tableSurface">
+                    <!-- Direction Orbit Ring -->
+                    <div id="directionRing" class="direction-ring clockwise">
+                        <svg class="direction-ring-svg" viewBox="0 0 400 400">
+                            <circle class="ring-track" cx="200" cy="200" r="185" />
+                            <circle class="ring-pulse" cx="200" cy="200" r="185" />
+                        </svg>
+                        <div class="direction-arrows">
+                            <span class="dir-arrow arrow-top">➤</span>
+                            <span class="dir-arrow arrow-right">➤</span>
+                            <span class="dir-arrow arrow-bottom">➤</span>
+                            <span class="dir-arrow arrow-left">➤</span>
+                        </div>
+                    </div>
+
+                    <!-- Shockwave Ripple -->
+                    <div id="tableShockwave" class="table-shockwave"></div>
+
                     <!-- Draw Pile Deck -->
                     <div class="pile-wrapper">
                         <span class="pile-header-label">DRAW DECK</span>
@@ -217,6 +234,9 @@
 
         <!-- Notification Toast -->
         <div id="toastNotification" class="toast hidden"></div>
+
+        <!-- Confetti Canvas -->
+        <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
     </div>
 
     <script src="app.js"></script>

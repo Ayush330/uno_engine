@@ -11,7 +11,8 @@ let state = {
     isHost: false,
     ws: null,
     gameSnapshot: null,
-    pendingWildCard: null
+    pendingWildCard: null,
+    lastClickedCardElement: null
 };
 
 // --- Color & Kind Mapping Constants ---
@@ -123,17 +124,114 @@ const btnSayUno = document.getElementById('btnSayUno');
 const turnTimerBadge = document.getElementById('turnTimerBadge');
 const turnTimerBar = document.getElementById('turnTimerBar');
 const drawPileHint = document.getElementById('drawPileHint');
+const tableSurface = document.getElementById('tableSurface');
+const directionRing = document.getElementById('directionRing');
+const tableShockwave = document.getElementById('tableShockwave');
+const confettiCanvas = document.getElementById('confettiCanvas');
 
 let lastSeenAction = "";
 let lastSeenColor = null;
 let actionTimer = null;
 let turnTimerInterval = null;
+let confettiAnimationId = null;
 
 // Modals
 const colorPickerModal = document.getElementById('colorPickerModal');
 const gameOverModal = document.getElementById('gameOverModal');
 const btnReturnLobby = document.getElementById('btnReturnLobby');
 const toastNotification = document.getElementById('toastNotification');
+
+// ==========================================================
+// TABLETOP INTERACTION & FX HELPERS
+// ==========================================================
+
+// Check if card matches discard pile or active color (exact mirror of Go domain)
+function isCardPlayable(card, topDiscard, activeColor) {
+    if (!card) return false;
+    // Wild cards (5: Wild, 6: Wild Draw 4) are always playable
+    if (card.kind === 5 || card.kind === 6) return true;
+    // Color matches active color
+    if (activeColor && card.color === activeColor) return true;
+    if (!topDiscard) return false;
+    // Number card match
+    if (card.kind === 1 && topDiscard.kind === 1 && card.value === topDiscard.value) return true;
+    // Special action match (Skip: 2, Reverse: 3, Draw 2: 4)
+    if (card.kind >= 2 && card.kind <= 4 && card.kind === topDiscard.kind) return true;
+    return false;
+}
+
+// Table shockwave ripple on action card impact
+function triggerShockwave() {
+    if (!tableShockwave) return;
+    tableShockwave.classList.remove('trigger-shockwave');
+    void tableShockwave.offsetWidth; // re-trigger animation
+    tableShockwave.classList.add('trigger-shockwave');
+    setTimeout(() => {
+        tableShockwave.classList.remove('trigger-shockwave');
+    }, 700);
+}
+
+// Fullscreen celebratory confetti cannon on game victory
+function launchConfetti() {
+    if (!confettiCanvas) return;
+    const ctx = confettiCanvas.getContext('2d');
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+
+    const particles = [];
+    const colors = ['#ef4444', '#3b82f6', '#10b981', '#fbbf24', '#f43f5e', '#a855f7'];
+
+    for (let i = 0; i < 140; i++) {
+        particles.push({
+            x: window.innerWidth / 2 + (Math.random() * 240 - 120),
+            y: window.innerHeight / 2 + (Math.random() * 120 - 60),
+            vx: (Math.random() - 0.5) * 16,
+            vy: (Math.random() - 1.25) * 16,
+            size: Math.random() * 8 + 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            rotationSpeed: (Math.random() - 0.5) * 12,
+            opacity: 1
+        });
+    }
+
+    if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+
+    function render() {
+        ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        let active = 0;
+
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.28; // gravity
+            p.vx *= 0.99;
+            p.rotation += p.rotationSpeed;
+            if (p.y > window.innerHeight * 0.6) {
+                p.opacity -= 0.015;
+            }
+
+            if (p.opacity > 0 && p.y < window.innerHeight + 50) {
+                active++;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate((p.rotation * Math.PI) / 180);
+                ctx.globalAlpha = Math.max(0, p.opacity);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.4);
+                ctx.restore();
+            }
+        });
+
+        if (active > 0) {
+            confettiAnimationId = requestAnimationFrame(render);
+        } else {
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        }
+    }
+
+    confettiAnimationId = requestAnimationFrame(render);
+}
 
 // ==========================================================
 // NAVIGATION & SCREEN SWITCHING
@@ -471,7 +569,7 @@ function renderGameArena(snapshot) {
                     safeBadge.className = 'uno-safe-badge';
                     safeBadge.textContent = 'UNO CALLED ✓';
                     oppChip.appendChild(safeBadge);
-                } else {
+                } else if (p.isVulnerableToUno) {
                     const catchBtn = document.createElement('button');
                     catchBtn.className = 'btn-catch-uno';
                     catchBtn.textContent = '🚨 CATCH UNO!';
@@ -503,15 +601,40 @@ function renderGameArena(snapshot) {
         topCardContainer.appendChild(cardElem);
     }
 
-    // Render Active Color
+    // Render Active Color & Ambient Table Aura
     const activeCol = snapshot.activeColor;
     activeColorDot.style.background = COLOR_HEX[activeCol] || '#ef4444';
     activeColorName.textContent = COLOR_NAMES[activeCol] || 'RED';
 
+    if (tableSurface) {
+        tableSurface.classList.remove('aura-1', 'aura-2', 'aura-3', 'aura-4');
+        if (activeCol >= 1 && activeCol <= 4) {
+            tableSurface.classList.add(`aura-${activeCol}`);
+        }
+    }
+
+    // Direction Orbit Ring (snapshot.direction: 1 or -1)
+    if (directionRing) {
+        if (snapshot.direction === -1) {
+            directionRing.classList.remove('clockwise');
+            directionRing.classList.add('counter-clockwise');
+        } else {
+            directionRing.classList.remove('counter-clockwise');
+            directionRing.classList.add('clockwise');
+        }
+
+        if (state.prevSnapshot && state.prevSnapshot.direction !== undefined && state.prevSnapshot.direction !== snapshot.direction) {
+            directionRing.classList.remove('reverse-flash');
+            void directionRing.offsetWidth;
+            directionRing.classList.add('reverse-flash');
+            setTimeout(() => directionRing.classList.remove('reverse-flash'), 800);
+        }
+    }
+
     // Render Draw Pile Count
     drawPileCountBadge.textContent = snapshot.drawPile || 0;
 
-    // Render Player Hand
+    // Render Player Hand with Parabolic Arc Fanning & Playable Highlighting
     const me = snapshot.players.find(p => p.playerId === state.playerId);
     myHandContainer.innerHTML = "";
     if (me && me.handCards) {
@@ -520,12 +643,35 @@ function renderGameArena(snapshot) {
 
         me.handCards.forEach((card, idx) => {
             const cardElem = createCardElement(card, true);
+            const playable = isMyTurn && isCardPlayable(card, snapshot.discardPile, snapshot.activeColor);
 
-            // Natural fan-out angle
-            const angle = (idx - (totalCards - 1) / 2) * 3;
-            cardElem.style.transform = `rotate(${angle}deg)`;
+            if (isMyTurn) {
+                cardElem.classList.add(playable ? 'playable' : 'unplayable');
+            }
 
-            cardElem.addEventListener('click', () => onCardClicked(card));
+            // Natural arced fan-out with parabolic vertical offset
+            const offset = idx - (totalCards - 1) / 2;
+            const rotateDeg = (offset * 3.5).toFixed(1);
+            const translateY = (Math.abs(offset) * 4).toFixed(1);
+            cardElem.style.transform = `translateY(${translateY}px) rotate(${rotateDeg}deg)`;
+
+            cardElem.addEventListener('click', () => {
+                if (!isMyTurn) {
+                    playSound('error');
+                    showToast("Not your turn!", true);
+                    return;
+                }
+                if (!playable) {
+                    playSound('error');
+                    cardElem.classList.remove('card-shake');
+                    void cardElem.offsetWidth; // re-trigger head shake
+                    cardElem.classList.add('card-shake');
+                    return;
+                }
+                state.lastClickedCardElement = cardElem;
+                onCardClicked(card);
+            });
+
             myHandContainer.appendChild(cardElem);
         });
     }
@@ -536,6 +682,7 @@ function renderGameArena(snapshot) {
         document.getElementById('winnerTitle').textContent = `${winner.playerName} Wins! 🎉`;
         document.getElementById('winnerSubtitle').textContent = winner.playerId === state.playerId ? "Congratulations, you won!" : "Better luck next time!";
         gameOverModal.classList.remove('hidden');
+        launchConfetti();
     }
 }
 
@@ -543,42 +690,47 @@ function renderGameArena(snapshot) {
 // 3D CARD ANIMATION ENGINES
 // ==========================================================
 
-// 1. Smooth Flight to Discard Pile
+// 1. Smooth Flight to Discard Pile with Exact Card Trajectory & Shockwave
 function animateCardPlay(actorId, card, onComplete) {
-    let sourceEl = null;
+    let sourceRect = null;
 
-    if (actorId === state.playerId) {
-        sourceEl = myHandContainer.querySelector('.card:last-child') || myHandContainer;
+    if (actorId === state.playerId && state.lastClickedCardElement) {
+        sourceRect = state.lastClickedCardElement.getBoundingClientRect();
+        state.lastClickedCardElement.style.visibility = 'hidden';
+    } else if (actorId === state.playerId) {
+        const handEl = myHandContainer.querySelector('.card:last-child') || myHandContainer;
+        sourceRect = handEl.getBoundingClientRect();
     } else {
-        sourceEl = opponentsArea.querySelector(`[data-player-id="${actorId}"]`);
+        const oppEl = opponentsArea.querySelector(`[data-player-id="${actorId}"]`);
+        if (oppEl) sourceRect = oppEl.getBoundingClientRect();
     }
 
     const targetEl = topCardContainer || document.getElementById('discardPile');
-    if (!sourceEl || !targetEl) {
+    if (!sourceRect || !targetEl) {
+        state.lastClickedCardElement = null;
         if (onComplete) onComplete();
         return;
     }
 
-    const sourceRect = sourceEl.getBoundingClientRect();
     const targetRect = targetEl.getBoundingClientRect();
 
     // Create flying card element
     const flyingCard = createCardElement(card, false);
     flyingCard.classList.add('card-flying');
 
-    // Initial position at source
+    // Initial position at exact source
     flyingCard.style.top = `${sourceRect.top}px`;
     flyingCard.style.left = `${sourceRect.left}px`;
     flyingCard.style.transform = actorId === state.playerId 
-        ? 'translate(0, 0) scale(0.9) rotate(-10deg)' 
-        : 'translate(0, 0) scale(0.7) rotate(25deg)';
+        ? 'translate(0, 0) scale(0.95) rotate(-6deg)' 
+        : 'translate(0, 0) scale(0.65) rotate(20deg)';
 
     document.body.appendChild(flyingCard);
     playSound('card');
 
     // Trigger animation to target on next frame
     requestAnimationFrame(() => {
-        const randomTilt = (Math.random() * 20 - 10).toFixed(1);
+        const randomTilt = (Math.random() * 16 - 8).toFixed(1);
         flyingCard.style.top = `${targetRect.top}px`;
         flyingCard.style.left = `${targetRect.left}px`;
         flyingCard.style.transform = `translate(0, 0) scale(1) rotate(${randomTilt}deg)`;
@@ -593,7 +745,13 @@ function animateCardPlay(actorId, card, onComplete) {
             discardPileEl.classList.add('discard-impact');
         }
 
+        // Action shockwave for special cards (Skip:2, Reverse:3, Draw2:4, WildDraw4:6)
+        if (card.kind === 2 || card.kind === 3 || card.kind === 4 || card.kind === 6) {
+            triggerShockwave();
+        }
+
         flyingCard.remove();
+        state.lastClickedCardElement = null;
         if (onComplete) onComplete();
     }, 420);
 }

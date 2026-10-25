@@ -67,6 +67,9 @@ func (h *Hub) Unregister(roomID string, playerID int) {
 	delete(h.rooms[roomID], playerID)
 	if len(h.rooms[roomID]) == 0 {
 		delete(h.rooms, roomID)
+		if room, err := h.roomManager.GetRoom(roomID); err == nil {
+			room.Close()
+		}
 		h.roomManager.RemoveRoom(roomID)
 	}
 }

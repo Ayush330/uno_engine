@@ -110,7 +110,13 @@
                 </div>
 
                 <div class="turn-status-banner" id="turnStatusBanner">
-                    <span id="turnStatusText">Waiting for match...</span>
+                    <div class="turn-status-content">
+                        <span id="turnStatusText">Waiting for match...</span>
+                        <span id="turnTimerBadge" class="turn-timer-badge hidden">15s</span>
+                    </div>
+                    <div class="turn-timer-bar-track">
+                        <div id="turnTimerBar" class="turn-timer-bar"></div>
+                    </div>
                 </div>
 
                 <div class="table-surface glass-panel">
@@ -157,9 +163,17 @@
                         <span class="hand-label">Your Hand</span>
                         <span id="myCardCountBadge" class="card-count-tag">0 cards</span>
                     </div>
-                    <button id="btnDrawTurn" class="btn-draw-action" title="Draw Card">
-                        <span>Draw Card</span>
-                    </button>
+                    <div class="hand-action-buttons">
+                        <button id="btnSayUno" class="btn-say-uno hidden" title="Call UNO!">
+                            <span>UNO! 🔥</span>
+                        </button>
+                        <button id="btnDrawTurn" class="btn-draw-action" title="Draw Card">
+                            <span>Draw Card</span>
+                        </button>
+                        <button id="btnPassTurn" class="btn-pass-action hidden" title="Pass Turn">
+                            <span>Pass Turn ⏭</span>
+                        </button>
+                    </div>
                 </div>
                 <div id="myHandContainer" class="my-hand-container">
                     <!-- Your interactive cards rendered dynamically -->

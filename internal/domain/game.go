@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 )
 
 type Direction int8
@@ -47,6 +48,8 @@ type GameState struct {
 	currentTurnIndex int
 	stateName        StateName
 	lastAction       string
+	turnDeadline     int64
+	hasDrawnCard     bool
 }
 
 func NewGameState(id int) *GameState {
@@ -117,6 +120,7 @@ func (g *GameState) GameStart() error {
 	}
 	g.stateName = StateWaitingForTurn
 	g.currentTurnIndex = 0
+	g.resetTurnDeadline()
 	g.lastAction = fmt.Sprintf("Game started! 7 cards dealt to all players. %s's turn.", g.players[0].name)
 	return nil
 }
@@ -177,11 +181,13 @@ func (g *GameState) PlayCard(playerId int, card Card, color Color) error {
 		g.stateName = StateGameOver
 		return nil
 	}
+	g.hasDrawnCard = false
 	g.setNextTurnIndex(card.Kind())
 	return nil
 }
 
 func (g *GameState) setNextTurnIndex(kind Kind) {
+	g.resetTurnDeadline()
 	switch kind {
 	case KindSkip:
 		nextTurn := findNextPlayerIndex(g.currentTurnIndex, g.direction, g.players)
@@ -189,6 +195,10 @@ func (g *GameState) setNextTurnIndex(kind Kind) {
 		g.currentTurnIndex = nextTurn
 	case KindReverse:
 		g.direction = -1 * g.direction
+		if g.countActivePlayers() == 2 {
+			// In 2-player Uno, Reverse acts as Skip: the current player goes again!
+			return
+		}
 		nextTurn := findNextPlayerIndex(g.currentTurnIndex, g.direction, g.players)
 		g.currentTurnIndex = nextTurn
 	case KindDrawTwo, KindWildDrawFour:
@@ -202,7 +212,13 @@ func (g *GameState) setNextTurnIndex(kind Kind) {
 		}
 		cards, err := g.drawpile.DrawCards(numOfCardsToDraw)
 		if err != nil {
-			panic(err)
+			// Only one type of error is possible here
+			// ErrInsufficientCards
+			// Since there are fewer cards left, we will use the discard pile now
+			// If not enough cards remain in the entire game, draw whatever is left
+			if len(g.drawpile.cards) > 0 {
+				cards, _ = g.drawpile.DrawCards(uint8(len(g.drawpile.cards)))
+			}
 		}
 		// add it to currentplayers hand
 		victimPlayer := g.players[victimPlayerIndex]
@@ -252,6 +268,9 @@ func (g *GameState) DrawCard(playerID int) error {
 	//Verify player turn
 	// is playing
 	// have cards
+	if g.hasDrawnCard {
+		return errors.New("domain: already drawn a card this turn")
+	}
 	if g.players[g.currentTurnIndex].id != playerID {
 		return ErrInvalidTurn
 	}
@@ -259,7 +278,7 @@ func (g *GameState) DrawCard(playerID int) error {
 	if player.FinishedPlaying() {
 		return ErrInvalidTurn
 	}
-	card, err := g.drawpile.DrawCards(1)
+	card, err := g.DrawCardWithReshuffle(1)
 	if err != nil {
 		return err
 	}
@@ -267,22 +286,12 @@ func (g *GameState) DrawCard(playerID int) error {
 	// else add it to the players hand card..
 	// We need to determine the type of card that is drawn
 	// color
-	var color Color
-	switch card[0].Kind() {
-	case KindWild, KindWildDrawFour:
-		// need to ask the user
-		// for now we are continuing with the active color of the game
-		color = g.discardPile.ActiveColor()
-	default:
-		color = card[0].Color()
-	}
 	player.AddCardToHand(card[0])
-	err = g.PlayCard(playerID, card[0], color)
-	if err != nil {
-		// Card was NOT played: just pass turn to next player normally!
-		g.lastAction = fmt.Sprintf("%s drew a card and passed.", player.name)
-		g.currentTurnIndex = findNextPlayerIndex(g.currentTurnIndex, g.direction, g.players)
-	}
+	//removig force handling
+	//err = g.PlayCard(playerID, card[0], color)
+	g.hasDrawnCard = true
+	g.lastAction = fmt.Sprintf("%s drew a card.", player.name)
+	g.resetTurnDeadline()
 	return nil
 }
 
@@ -299,6 +308,9 @@ type GetGameSnapShot struct {
 	DrawPile     int          `json:"drawPile"`
 	Players      []PlayerInfo `json:"players"`
 	LastAction   string       `json:"lastAction"`
+	TurnDuration int          `json:"turnDuration"`
+	TurnDeadline int64        `json:"turnDeadline"`
+	HasDrawnCard bool         `json:"hasDrawnCard"`
 }
 
 type PlayerInfo struct {
@@ -307,6 +319,7 @@ type PlayerInfo struct {
 	IsActive      bool   `json:"isActive"`
 	HandCardCount int    `json:"handCardCount"`
 	HandCards     []Card `json:"handCards"`
+	HasSaidUno    bool   `json:"hasSaidUno"`
 }
 
 func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
@@ -322,6 +335,7 @@ func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
 			IsActive:      !g.players[i].FinishedPlaying(),
 			HandCardCount: len(g.players[i].handCards),
 			HandCards:     playerHandCards,
+			HasSaidUno:    g.players[i].HasSaidUno(),
 		}
 		pInfo[i] = info
 	}
@@ -338,6 +352,9 @@ func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
 		DrawPile:     len(g.drawpile.cards),
 		Players:      pInfo,
 		LastAction:   g.lastAction,
+		TurnDuration: 15,
+		TurnDeadline: g.turnDeadline,
+		HasDrawnCard: g.hasDrawnCard,
 	}
 }
 
@@ -351,6 +368,7 @@ func (g *GameState) DebugGameSnapshot() *GetGameSnapShot {
 			IsActive:      !g.players[i].FinishedPlaying(),
 			HandCardCount: len(g.players[i].handCards),
 			HandCards:     playerHandCards,
+			HasSaidUno:    g.players[i].HasSaidUno(),
 		}
 		pInfo[i] = info
 	}
@@ -371,5 +389,103 @@ func (g *GameState) DebugGameSnapshot() *GetGameSnapShot {
 		DrawPile:     len(g.drawpile.cards),
 		Players:      pInfo,
 		LastAction:   g.lastAction,
+		TurnDuration: 15,
+		TurnDeadline: g.turnDeadline,
+		HasDrawnCard: g.hasDrawnCard,
 	}
+}
+
+func (g *GameState) DrawCardWithReshuffle(count uint8) ([]Card, error) {
+	if len(g.drawpile.cards) < int(count) {
+		newDeckPile, err := g.discardPile.CardsToUseWhenDrawPileIsEmpty()
+		if err != nil {
+			return nil, err
+		}
+		g.drawpile.cards = append(g.drawpile.cards, newDeckPile...)
+		return g.drawpile.DrawCards(count)
+	}
+	return g.drawpile.DrawCards(count)
+}
+
+func (g *GameState) countActivePlayers() int {
+	count := 0
+	for _, p := range g.players {
+		if !p.FinishedPlaying() {
+			count++
+		}
+	}
+	return count
+}
+
+func (g *GameState) CurrentTurnPlayerID() int {
+	if g.currentTurnIndex == -1 {
+		return -1
+	}
+	return g.players[g.currentTurnIndex].id
+}
+
+func (g *GameState) resetTurnDeadline() {
+	g.turnDeadline = time.Now().Add(15 * time.Second).UnixMilli()
+}
+
+func (g *GameState) PassTurn(playerId int) error {
+	if g.players[g.currentTurnIndex].id != playerId {
+		return ErrInvalidTurn
+	}
+	if !g.hasDrawnCard {
+		return errors.New("domain: has not drawn a card this turn")
+	}
+	g.hasDrawnCard = false
+	g.lastAction = fmt.Sprintf("%s passed the turn.", g.players[g.currentTurnIndex].name)
+	g.currentTurnIndex = findNextPlayerIndex(g.currentTurnIndex, g.direction, g.players)
+	g.resetTurnDeadline()
+	return nil
+}
+
+func (g *GameState) HasDrawnCard() bool {
+	return g.hasDrawnCard
+}
+
+func (g *GameState) SayUno(playerID int) error {
+	player := g.findPlayerByID(playerID)
+	if player == nil {
+		return ErrPlayerNotFound
+	}
+	if len(player.handCards) > 2 {
+		return errors.New("domain: cannot call UNO with more than 2 cards")
+	}
+	player.SetSaidUno(true)
+	g.lastAction = fmt.Sprintf("🔥 %s shouted UNO!", player.name)
+	return nil
+}
+
+func (g *GameState) CatchUno(accuserPlayerID int, targetPlayerID int) error {
+	accuser := g.findPlayerByID(accuserPlayerID)
+	if accuser == nil {
+		return ErrPlayerNotFound
+	}
+	target := g.findPlayerByID(targetPlayerID)
+	if target == nil {
+		return ErrPlayerNotFound
+	}
+	if target.FinishedPlaying() || len(target.handCards) != 1 || target.HasSaidUno() {
+		return errors.New("domain: player is not vulnerable to UNO penalty")
+	}
+	penaltyCards, err := g.DrawCardWithReshuffle(3)
+	if err != nil {
+		return err
+	}
+	target.AddToHand(penaltyCards)
+	target.SetSaidUno(false)
+	g.lastAction = fmt.Sprintf("🚨 %s caught %s for not saying UNO! %s draws 3 cards!", accuser.name, target.name, target.name)
+	return nil
+}
+
+func (g *GameState) findPlayerByID(playerID int) *Player {
+	for _, p := range g.players {
+		if p.id == playerID {
+			return p
+		}
+	}
+	return nil
 }

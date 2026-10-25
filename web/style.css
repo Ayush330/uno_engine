@@ -504,8 +504,9 @@ body {
 }
 
 .turn-status-banner {
-    padding: 0.4rem 1.25rem;
-    background: rgba(15, 23, 42, 0.8);
+    position: relative;
+    padding: 0.5rem 1.4rem;
+    background: rgba(15, 23, 42, 0.85);
     border: 1px solid var(--border-glass);
     border-radius: 999px;
     font-size: 0.9rem;
@@ -513,6 +514,11 @@ body {
     letter-spacing: 0.02em;
     color: var(--text-secondary);
     transition: all 0.3s;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .turn-status-banner.my-turn {
@@ -521,6 +527,68 @@ body {
     color: #38bdf8;
     box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
     animation: turnBounce 1.5s infinite;
+}
+
+.turn-status-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.turn-timer-badge {
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+    transition: all 0.3s;
+}
+
+.turn-timer-badge.warning {
+    background: rgba(245, 158, 11, 0.25);
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+}
+
+.turn-timer-badge.critical {
+    background: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.6);
+    box-shadow: 0 0 16px rgba(248, 113, 113, 0.6);
+    animation: pulseCritical 0.8s infinite;
+}
+
+@keyframes pulseCritical {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.turn-timer-bar-track {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.turn-timer-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #4ade80, #38bdf8);
+    border-radius: 999px;
+    transition: width 0.1s linear, background 0.3s;
+}
+
+.turn-timer-bar.warning {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.turn-timer-bar.critical {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
 }
 
 @keyframes turnBounce {
@@ -922,6 +990,12 @@ body {
     border-radius: 999px;
 }
 
+.hand-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
 .btn-draw-action {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid var(--border-glass);
@@ -933,6 +1007,99 @@ body {
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s;
+}
+
+.btn-draw-action:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.btn-pass-action {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: 1px solid rgba(245, 158, 11, 0.8);
+    color: #0f172a;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.4rem 1.15rem;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+    transition: all 0.2s;
+    animation: glowPass 1.2s infinite alternate;
+}
+
+@keyframes glowPass {
+    0% { transform: scale(1); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+    100% { transform: scale(1.05); box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
+}
+
+.btn-pass-action:hover {
+    transform: scale(1.08) translateY(-2px);
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.btn-say-uno {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: 2px solid #fecaca;
+    color: white;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    padding: 0.4rem 1.25rem;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
+    animation: pulseUno 1s infinite alternate;
+    transition: all 0.2s;
+}
+
+@keyframes pulseUno {
+    0% { transform: scale(1); box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+    100% { transform: scale(1.08); box-shadow: 0 0 30px rgba(239, 68, 68, 1); }
+}
+
+.btn-say-uno:hover {
+    transform: scale(1.15) translateY(-2px);
+    background: linear-gradient(135deg, #f87171, #ef4444);
+}
+
+.btn-catch-uno {
+    background: rgba(239, 68, 68, 0.25);
+    border: 1px solid rgba(239, 68, 68, 0.8);
+    color: #fca5a5;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+    animation: flashCatch 0.8s infinite alternate;
+    transition: all 0.15s;
+    margin-top: 0.3rem;
+}
+
+@keyframes flashCatch {
+    0% { opacity: 0.75; transform: scale(0.96); }
+    100% { opacity: 1; transform: scale(1.04); }
+}
+
+.btn-catch-uno:hover {
+    background: rgba(239, 68, 68, 0.5);
+    color: white;
+    transform: scale(1.1);
+}
+
+.uno-safe-badge {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #4ade80;
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    margin-top: 0.2rem;
 }
 
 .btn-draw-action:hover {

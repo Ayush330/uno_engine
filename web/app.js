@@ -118,10 +118,16 @@ const activeColorName = document.getElementById('activeColorName');
 const myHandContainer = document.getElementById('myHandContainer');
 const myCardCountBadge = document.getElementById('myCardCountBadge');
 const btnDrawTurn = document.getElementById('btnDrawTurn');
+const btnPassTurn = document.getElementById('btnPassTurn');
+const btnSayUno = document.getElementById('btnSayUno');
+const turnTimerBadge = document.getElementById('turnTimerBadge');
+const turnTimerBar = document.getElementById('turnTimerBar');
+const drawPileHint = document.getElementById('drawPileHint');
 
 let lastSeenAction = "";
 let lastSeenColor = null;
 let actionTimer = null;
+let turnTimerInterval = null;
 
 // Modals
 const colorPickerModal = document.getElementById('colorPickerModal');
@@ -399,16 +405,32 @@ function renderGameArena(snapshot) {
 
     const isMyTurn = (snapshot.turnPlayerId === state.playerId);
 
-    // Turn Banner
+    // Turn Timer Controller
+    startTurnTimer(snapshot.turnDeadline, snapshot.turnDuration || 15);
+
+    // Turn Banner & Action Prompt
     if (isMyTurn) {
         turnStatusBanner.className = "turn-status-banner my-turn";
-        turnStatusText.textContent = "★ YOUR TURN! Play a card or draw";
+        if (snapshot.hasDrawnCard) {
+            turnStatusText.textContent = "★ Card Drawn! Play a valid card or PASS";
+            btnPassTurn.classList.remove('hidden');
+            btnDrawTurn.classList.add('hidden');
+            if (drawPileHint) drawPileHint.textContent = "Click to pass turn";
+        } else {
+            turnStatusText.textContent = "★ YOUR TURN! Play a card or draw";
+            btnPassTurn.classList.add('hidden');
+            btnDrawTurn.classList.remove('hidden');
+            if (drawPileHint) drawPileHint.textContent = "Click to draw";
+        }
         playSound('turn');
     } else {
         const activePlayer = snapshot.players.find(p => p.playerId === snapshot.turnPlayerId);
         const name = activePlayer ? activePlayer.playerName : "Opponent";
         turnStatusBanner.className = "turn-status-banner";
         turnStatusText.textContent = `Waiting for ${name}'s turn...`;
+        btnPassTurn.classList.add('hidden');
+        btnDrawTurn.classList.remove('hidden');
+        if (drawPileHint) drawPileHint.textContent = "Opponent's turn";
     }
 
     // Action Announcement Banner
@@ -426,7 +448,7 @@ function renderGameArena(snapshot) {
         showToast(`🎨 Table Color changed to ${colorName}!`);
     }
 
-    // Render Opponents
+    // Render Opponents & UNO Challenge Badges
     opponentsArea.innerHTML = "";
     snapshot.players.forEach(p => {
         if (p.playerId !== state.playerId) {
@@ -441,9 +463,38 @@ function renderGameArena(snapshot) {
                     <span class="opp-cards">🂠 ${p.handCardCount} cards</span>
                 </div>
             `;
+
+            // UNO Penalty & Vulnerability Badges
+            if (p.handCardCount === 1) {
+                if (p.hasSaidUno) {
+                    const safeBadge = document.createElement('div');
+                    safeBadge.className = 'uno-safe-badge';
+                    safeBadge.textContent = 'UNO CALLED ✓';
+                    oppChip.appendChild(safeBadge);
+                } else {
+                    const catchBtn = document.createElement('button');
+                    catchBtn.className = 'btn-catch-uno';
+                    catchBtn.textContent = '🚨 CATCH UNO!';
+                    catchBtn.title = `Catch ${p.playerName} for not calling UNO! (3 Penalty Cards)`;
+                    catchBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        triggerCatchUno(p.playerId);
+                    });
+                    oppChip.appendChild(catchBtn);
+                }
+            }
+
             opponentsArea.appendChild(oppChip);
         }
     });
+
+    // Check If I Should Call UNO (1 or 2 cards left and haven't called yet)
+    const myPlayer = snapshot.players.find(p => p.playerId === state.playerId);
+    if (myPlayer && myPlayer.handCardCount <= 2 && myPlayer.handCardCount >= 1 && !myPlayer.hasSaidUno) {
+        btnSayUno.classList.remove('hidden');
+    } else {
+        btnSayUno.classList.add('hidden');
+    }
 
     // Render Top Discard Card
     topCardContainer.innerHTML = "";
@@ -726,10 +777,58 @@ function playCardAction(card, chosenColor) {
     }
 }
 
+// Turn Countdown Timer Engine
+function startTurnTimer(deadlineMs, durationSec = 15) {
+    if (turnTimerInterval) {
+        clearInterval(turnTimerInterval);
+        turnTimerInterval = null;
+    }
+    if (!deadlineMs || deadlineMs <= 0) {
+        turnTimerBadge.classList.add('hidden');
+        return;
+    }
+    turnTimerBadge.classList.remove('hidden');
+
+    function tick() {
+        const now = Date.now();
+        const remainingMs = Math.max(0, deadlineMs - now);
+        const remainingSec = Math.ceil(remainingMs / 1000);
+        const pct = Math.min(100, Math.max(0, (remainingMs / (durationSec * 1000)) * 100));
+
+        turnTimerBadge.textContent = `${remainingSec}s`;
+        turnTimerBar.style.width = `${pct}%`;
+
+        turnTimerBadge.classList.remove('warning', 'critical');
+        turnTimerBar.classList.remove('warning', 'critical');
+
+        if (remainingSec <= 3) {
+            turnTimerBadge.classList.add('critical');
+            turnTimerBar.classList.add('critical');
+        } else if (remainingSec <= 6) {
+            turnTimerBadge.classList.add('warning');
+            turnTimerBar.classList.add('warning');
+        }
+
+        if (remainingMs <= 0) {
+            clearInterval(turnTimerInterval);
+            turnTimerInterval = null;
+            turnTimerBadge.textContent = "0s";
+            turnTimerBar.style.width = "0%";
+        }
+    }
+
+    tick();
+    turnTimerInterval = setInterval(tick, 100);
+}
+
 // Draw Card Button Click
 function triggerDraw() {
     if (!state.gameSnapshot || state.gameSnapshot.turnPlayerId !== state.playerId) {
         showToast("Not your turn!", true);
+        return;
+    }
+    if (state.gameSnapshot.hasDrawnCard) {
+        triggerPass();
         return;
     }
     playSound('card');
@@ -738,8 +837,38 @@ function triggerDraw() {
     }
 }
 
+// Pass Turn Button Click
+function triggerPass() {
+    if (!state.gameSnapshot || state.gameSnapshot.turnPlayerId !== state.playerId) {
+        showToast("Not your turn!", true);
+        return;
+    }
+    playSound('click');
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+        state.ws.send(JSON.stringify({ action: "PASS_TURN" }));
+    }
+}
+
+// Call UNO on self
+function triggerSayUno() {
+    playSound('turn');
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+        state.ws.send(JSON.stringify({ action: "SAY_UNO" }));
+    }
+}
+
+// Catch Opponent who forgot UNO
+function triggerCatchUno(targetId) {
+    playSound('error');
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+        state.ws.send(JSON.stringify({ action: "CATCH_UNO", targetId: targetId }));
+    }
+}
+
 drawPile.addEventListener('click', triggerDraw);
 btnDrawTurn.addEventListener('click', triggerDraw);
+btnPassTurn.addEventListener('click', triggerPass);
+btnSayUno.addEventListener('click', triggerSayUno);
 
 btnReturnLobby.addEventListener('click', () => {
     window.location.href = "/";

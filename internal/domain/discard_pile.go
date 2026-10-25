@@ -35,6 +35,19 @@ func (d *DiscardPile) LastCard() (Card, error) {
 	return d.cards[len(d.cards)-1], nil
 }
 
+func (d *DiscardPile) CardsToUseWhenDrawPileIsEmpty() ([]Card, error) {
+	if len(d.cards) <= 1 {
+		return nil, ErrDiscardPileEmpty
+	}
+	newDrawPile := Deck(d.cards[:len(d.cards)-1])
+	err := newDrawPile.Shuffle()
+	if err != nil {
+		return nil, err
+	}
+	d.cards = []Card{d.cards[len(d.cards)-1]}
+	return newDrawPile, nil
+}
+
 func (d *DiscardPile) ActiveColor() Color {
 	return d.activeColor
 }

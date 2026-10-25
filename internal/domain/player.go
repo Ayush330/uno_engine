@@ -11,6 +11,7 @@ type Player struct {
 	handCards       []Card // hand cards for the player
 	id              int    // seat index for player
 	finishedPlaying bool
+	hasSaidUno      bool
 }
 
 func CreateNewPlayer(name string, id int) *Player {
@@ -19,6 +20,7 @@ func CreateNewPlayer(name string, id int) *Player {
 		handCards:       make([]Card, 0),
 		id:              id,
 		finishedPlaying: false,
+		hasSaidUno:      false,
 	}
 }
 
@@ -30,8 +32,19 @@ func (p *Player) FinishedPlaying() bool {
 	return p.finishedPlaying
 }
 
+func (p *Player) HasSaidUno() bool {
+	return p.hasSaidUno
+}
+
+func (p *Player) SetSaidUno(status bool) {
+	p.hasSaidUno = status
+}
+
 func (p *Player) AddCardToHand(card Card) {
 	p.handCards = append(p.handCards, card)
+	if len(p.handCards) > 1 {
+		p.hasSaidUno = false
+	}
 }
 
 func (p *Player) RemoveCardFromHand(card Card) error {
@@ -47,4 +60,7 @@ func (p *Player) RemoveCardFromHand(card Card) error {
 
 func (p *Player) AddToHand(cards []Card) {
 	p.handCards = append(p.handCards, cards...)
+	if len(p.handCards) > 1 {
+		p.hasSaidUno = false
+	}
 }

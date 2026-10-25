@@ -3,6 +3,8 @@ package engine
 import (
 	"errors"
 	"sync"
+
+	"github.com/Ayush330/uno_engine/internal/domain"
 )
 
 var (
@@ -51,4 +53,23 @@ func (rm *RoomManager) RemoveRoom(roomId string) error {
 	}
 	delete(rm.rooms, roomId)
 	return nil
+}
+
+type GetAllRoomDTO struct {
+	RoomID   string                  `json:"roomId"`
+	Snapshot *domain.GetGameSnapShot `json:"snapshot"`
+}
+
+func (rm *RoomManager) GetAllRooms() []*GetAllRoomDTO {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	dtos := []*GetAllRoomDTO{}
+	for _, roomState := range rm.rooms {
+		dto := &GetAllRoomDTO{
+			RoomID:   roomState.id,
+			Snapshot: roomState.DebugSnapshot(),
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos
 }

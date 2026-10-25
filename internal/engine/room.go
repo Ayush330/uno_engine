@@ -108,3 +108,9 @@ func (r *Room) DrawCard(playerId int) error {
 	}
 	return r.gameState.DrawCard(playerId)
 }
+
+func (r *Room) DebugSnapshot() *domain.GetGameSnapShot {
+    r.mu.Lock()
+    defer r.mu.Unlock()
+    return r.gameState.DebugGameSnapshot()
+}

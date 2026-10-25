@@ -340,3 +340,36 @@ func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
 		LastAction:   g.lastAction,
 	}
 }
+
+func (g *GameState) DebugGameSnapshot() *GetGameSnapShot {
+	pInfo := make([]PlayerInfo, len(g.players))
+	for i := 0; i < len(g.players); i++ {
+		playerHandCards := g.players[i].handCards
+		info := PlayerInfo{
+			PlayerId:      g.players[i].id,
+			PlayerName:    g.players[i].name,
+			IsActive:      !g.players[i].FinishedPlaying(),
+			HandCardCount: len(g.players[i].handCards),
+			HandCards:     playerHandCards,
+		}
+		pInfo[i] = info
+	}
+	turnPlayerID := -1
+	if g.currentTurnIndex != -1 {
+		turnPlayerID = g.players[g.currentTurnIndex].id
+	}
+	var topDiscard Card
+	if len(g.discardPile.cards) > 0 {
+		topDiscard = g.discardPile.cards[len(g.discardPile.cards)-1]
+	}
+	return &GetGameSnapShot{
+		PlayerId:     -1,
+		TurnPlayerID: turnPlayerID,
+		ActiveColor:  g.discardPile.ActiveColor(),
+		Direction:    g.direction,
+		DiscardPile:  topDiscard,
+		DrawPile:     len(g.drawpile.cards),
+		Players:      pInfo,
+		LastAction:   g.lastAction,
+	}
+}

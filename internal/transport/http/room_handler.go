@@ -91,4 +91,12 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request) {
 func (h *RoomHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/rooms", h.CreateRoom)
 	mux.HandleFunc("POST /api/rooms/{id}/join", h.JoinRoom)
+	mux.HandleFunc("GET /api/rooms/debug/snapshots", h.GetRoomDetails)
+}
+
+func (h *RoomHandler) GetRoomDetails(w http.ResponseWriter, r *http.Request) {
+	rm := h.roomManager.GetAllRooms()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(rm)
 }

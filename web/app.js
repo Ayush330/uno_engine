@@ -286,17 +286,58 @@ function enterRoom() {
 }
 
 // ==========================================================
-// GAME STATE RENDERER
+// GAME STATE RENDERER WITH 3D FLIGHT ANIMATIONS
 // ==========================================================
 function handleGameStateUpdate(snapshot) {
+    const prev = state.prevSnapshot;
     state.gameSnapshot = snapshot;
 
     // Check if game is in Waiting phase (turnPlayerId == -1)
     if (snapshot.turnPlayerId === -1) {
+        state.prevSnapshot = snapshot;
         renderWaitingLobby(snapshot);
-    } else {
+        return;
+    }
+
+    // First time entering active game: render immediately without animation
+    if (!prev || prev.turnPlayerId === -1) {
+        state.prevSnapshot = snapshot;
+        renderGameArena(snapshot);
+        return;
+    }
+
+    // Determine what action took place between prev and current snapshot
+    const actorId = prev.turnPlayerId;
+    const oldDiscard = prev.discardPile;
+    const newDiscard = snapshot.discardPile;
+
+    const discardChanged = newDiscard && (!oldDiscard || 
+        oldDiscard.color !== newDiscard.color || 
+        oldDiscard.kind !== newDiscard.kind || 
+        oldDiscard.value !== newDiscard.value);
+
+    const oldDraw = prev.drawPile || 0;
+    const newDraw = snapshot.drawPile || 0;
+    const drawDiff = oldDraw - newDraw;
+
+    // Case 1: Card was thrown on discard pile
+    if (discardChanged && actorId !== -1) {
+        animateCardPlay(actorId, newDiscard, () => {
+            renderGameArena(snapshot);
+        });
+    }
+    // Case 2: Card(s) drawn from draw pile
+    else if (drawDiff > 0 && actorId !== -1) {
+        animateCardDraw(actorId, Math.min(drawDiff, 4), () => {
+            renderGameArena(snapshot);
+        });
+    }
+    // Case 3: Other state changes (e.g. timeout / color change only)
+    else {
         renderGameArena(snapshot);
     }
+
+    state.prevSnapshot = snapshot;
 }
 
 // 1. Render Waiting Lobby
@@ -370,12 +411,28 @@ function renderGameArena(snapshot) {
         turnStatusText.textContent = `Waiting for ${name}'s turn...`;
     }
 
+    // Action Announcement Banner
+    if (snapshot.lastAction && snapshot.lastAction !== "Waiting for players to join...") {
+        actionBannerText.textContent = snapshot.lastAction;
+        actionBanner.classList.remove('hidden');
+        actionBanner.style.animation = 'none';
+        void actionBanner.offsetWidth; // trigger reflow
+        actionBanner.style.animation = 'popAction 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    }
+
+    // Color Change Detection & Toast
+    if (state.prevSnapshot && state.prevSnapshot.activeColor !== snapshot.activeColor && snapshot.activeColor !== 0) {
+        const colorName = COLOR_NAMES[snapshot.activeColor] || "Color";
+        showToast(`🎨 Table Color changed to ${colorName}!`);
+    }
+
     // Render Opponents
     opponentsArea.innerHTML = "";
     snapshot.players.forEach(p => {
         if (p.playerId !== state.playerId) {
             const oppChip = document.createElement('div');
             oppChip.className = `opponent-chip ${p.playerId === snapshot.turnPlayerId ? 'turn-active' : ''}`;
+            oppChip.setAttribute('data-player-id', p.playerId);
             const initial = p.playerName.charAt(0).toUpperCase();
             oppChip.innerHTML = `
                 <div class="opp-avatar">${initial}</div>
@@ -432,26 +489,194 @@ function renderGameArena(snapshot) {
 }
 
 // ==========================================================
-// CARD COMPONENT BUILDER (AUTHENTIC UNO DESIGN)
+// 3D CARD ANIMATION ENGINES
+// ==========================================================
+
+// 1. Smooth Flight to Discard Pile
+function animateCardPlay(actorId, card, onComplete) {
+    let sourceEl = null;
+
+    if (actorId === state.playerId) {
+        sourceEl = myHandContainer.querySelector('.card:last-child') || myHandContainer;
+    } else {
+        sourceEl = opponentsArea.querySelector(`[data-player-id="${actorId}"]`);
+    }
+
+    const targetEl = topCardContainer || document.getElementById('discardPile');
+    if (!sourceEl || !targetEl) {
+        if (onComplete) onComplete();
+        return;
+    }
+
+    const sourceRect = sourceEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+
+    // Create flying card element
+    const flyingCard = createCardElement(card, false);
+    flyingCard.classList.add('card-flying');
+
+    // Initial position at source
+    flyingCard.style.top = `${sourceRect.top}px`;
+    flyingCard.style.left = `${sourceRect.left}px`;
+    flyingCard.style.transform = actorId === state.playerId 
+        ? 'translate(0, 0) scale(0.9) rotate(-10deg)' 
+        : 'translate(0, 0) scale(0.7) rotate(25deg)';
+
+    document.body.appendChild(flyingCard);
+    playSound('card');
+
+    // Trigger animation to target on next frame
+    requestAnimationFrame(() => {
+        const randomTilt = (Math.random() * 20 - 10).toFixed(1);
+        flyingCard.style.top = `${targetRect.top}px`;
+        flyingCard.style.left = `${targetRect.left}px`;
+        flyingCard.style.transform = `translate(0, 0) scale(1) rotate(${randomTilt}deg)`;
+    });
+
+    setTimeout(() => {
+        // Impact pulse on discard pile
+        const discardPileEl = document.getElementById('discardPile');
+        if (discardPileEl) {
+            discardPileEl.classList.remove('discard-impact');
+            void discardPileEl.offsetWidth; // re-trigger
+            discardPileEl.classList.add('discard-impact');
+        }
+
+        flyingCard.remove();
+        if (onComplete) onComplete();
+    }, 420);
+}
+
+// 2. Smooth Flight from Draw Deck to Player Hand / Opponent
+function animateCardDraw(actorId, count, onComplete) {
+    const drawDeckEl = document.getElementById('drawPile');
+    let targetEl = null;
+
+    if (actorId === state.playerId) {
+        targetEl = myHandContainer;
+    } else {
+        targetEl = opponentsArea.querySelector(`[data-player-id="${actorId}"]`);
+    }
+
+    if (!drawDeckEl || !targetEl) {
+        if (onComplete) onComplete();
+        return;
+    }
+
+    const deckRect = drawDeckEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+
+    const totalToAnimate = Math.min(count, 4);
+    let completed = 0;
+
+    for (let i = 0; i < totalToAnimate; i++) {
+        setTimeout(() => {
+            const flyingCard = document.createElement('div');
+            flyingCard.className = 'card card-back card-flying';
+            flyingCard.innerHTML = `
+                <div class="card-back-labyrinth"></div>
+                <div class="card-back-logo" style="font-size: 1.1rem; padding: 2px 8px;">UNO</div>
+            `;
+
+            flyingCard.style.top = `${deckRect.top}px`;
+            flyingCard.style.left = `${deckRect.left}px`;
+            flyingCard.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
+
+            document.body.appendChild(flyingCard);
+            playSound('card');
+
+            requestAnimationFrame(() => {
+                const targetScale = actorId === state.playerId ? '0.9' : '0.45';
+                flyingCard.style.top = `${targetRect.top + (targetRect.height / 4)}px`;
+                flyingCard.style.left = `${targetRect.left + (targetRect.width / 4)}px`;
+                flyingCard.style.transform = `translate(0, 0) scale(${targetScale}) rotate(${i * 8}deg)`;
+                flyingCard.style.opacity = '0.5';
+            });
+
+            setTimeout(() => {
+                flyingCard.remove();
+                if (actorId !== state.playerId && targetEl) {
+                    targetEl.classList.remove('chip-pulse');
+                    void targetEl.offsetWidth;
+                    targetEl.classList.add('chip-pulse');
+                }
+                completed++;
+                if (completed >= totalToAnimate && onComplete) {
+                    onComplete();
+                }
+            }, 380);
+        }, i * 90); // Stagger each card draw by 90ms
+    }
+}
+
+// ==========================================================
+// CARD COMPONENT BUILDER (UNO MINIMALISTA DARK EDITION)
 // ==========================================================
 function createCardElement(card, isInteractive = false) {
     const cardDiv = document.createElement('div');
     const colorClass = COLOR_CLASSES[card.color] || 'card-wild';
     cardDiv.className = `card ${colorClass}`;
 
-    let symbol = "";
-    if (card.kind === 1) { // Number
-        symbol = card.value.toString();
-    } else {
-        symbol = SYMBOL_DISPLAY[card.kind] || "";
+    let cornerHtml = "";
+    let centerHtml = "";
+
+    // 1. Number Cards (0 - 9)
+    if (card.kind === 1) {
+        const val = card.value;
+        const hasUnderline = (val === 6 || val === 9);
+        cornerHtml = `<span>${val}</span>`;
+        centerHtml = `
+            <div class="card-center-val">
+                <span>${val}</span>
+                ${hasUnderline ? '<div class="number-underline"></div>' : ''}
+            </div>
+        `;
+    }
+    // 2. Action Cards (Skip, Reverse, Draw 2)
+    else if (card.kind === 2) { // Skip
+        cornerHtml = `<span>⊘</span>`;
+        centerHtml = `<div class="card-center-val" style="font-size: 2.8rem;">⊘</div>`;
+    } else if (card.kind === 3) { // Reverse
+        cornerHtml = `<span>⇄</span>`;
+        centerHtml = `<div class="card-center-val" style="font-size: 2.8rem;">⇄</div>`;
+    } else if (card.kind === 4) { // Draw 2
+        cornerHtml = `<span>+2</span>`;
+        centerHtml = `<div class="card-center-val" style="font-size: 2.6rem; letter-spacing: -0.05em;">+2</div>`;
+    }
+    // 3. Wild Card (Overlapping Color Tiles from photo)
+    else if (card.kind === 5) {
+        cornerHtml = `<span class="wild-pill-badge">WILD</span>`;
+        centerHtml = `
+            <div class="wild-tiles-cluster">
+                <div class="wild-tile tile-red"></div>
+                <div class="wild-tile tile-blue"></div>
+                <div class="wild-tile tile-yellow"></div>
+                <div class="wild-tile tile-green"></div>
+            </div>
+        `;
+    }
+    // 4. Wild Draw 4 (+4 Overlapping Color Tiles)
+    else if (card.kind === 6) {
+        cornerHtml = `<span class="wild-pill-badge">+4</span>`;
+        centerHtml = `
+            <div class="wild-tiles-cluster">
+                <div class="wild-tile tile-red"></div>
+                <div class="wild-tile tile-blue"></div>
+                <div class="wild-tile tile-yellow"></div>
+                <div class="wild-tile tile-green"></div>
+                <span class="wild-draw4-text">+4</span>
+            </div>
+        `;
     }
 
     cardDiv.innerHTML = `
-        <div class="card-corner corner-tl">${symbol}</div>
-        <div class="card-oval">
-            <span class="card-symbol-center">${symbol}</span>
-        </div>
-        <div class="card-corner corner-br">${symbol}</div>
+        <svg class="card-arc-svg" viewBox="0 0 96 144" fill="none" preserveAspectRatio="none">
+            <path class="card-arc-path" d="M 12 134 C 12 55, 38 18, 86 10" stroke-width="3" stroke-linecap="round"/>
+            <path class="card-arc-path" d="M 84 10 C 84 89, 58 126, 10 134" stroke-width="1.2" opacity="0.3" stroke-linecap="round"/>
+        </svg>
+        <div class="card-corner corner-tl">${cornerHtml}</div>
+        ${centerHtml}
+        <div class="card-corner corner-br">${cornerHtml}</div>
     `;
 
     return cardDiv;

@@ -615,129 +615,251 @@ body {
 }
 
 /* ==========================================================
-   UNO CARDS RENDERING (AUTHENTIC AESTHETICS)
+   UNO MINIMALISTA (DARK EDITION) AUTHENTIC DESIGN
    ========================================================== */
 .card {
-    width: 90px;
-    height: 135px;
-    border-radius: 12px;
+    width: 96px;
+    height: 144px;
+    border-radius: 14px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.4);
-    border: 3px solid #ffffff;
+    background: #11141a;
+    border: 1.5px solid #232a35;
+    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.08);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform-origin: bottom center;
+    overflow: hidden;
+    user-select: none;
 }
 
-/* Card Oval Center */
-.card-oval {
-    width: 66px;
-    height: 105px;
-    border-radius: 50% / 35%;
-    background: white;
-    transform: rotate(25deg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
-}
-
-.card-symbol-center {
-    font-family: var(--font-display);
-    font-size: 2.2rem;
-    font-weight: 900;
-    transform: rotate(-25deg);
-    line-height: 1;
-}
-
-/* Corner indices */
-.card-corner {
+/* Sweeping Dynamic Vector Arcs (Signature Minimalista Look) */
+.card-arc-svg {
     position: absolute;
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: 0.85rem;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
 }
 
-.corner-tl {
-    top: 4px;
-    left: 6px;
-}
-
-.corner-br {
-    bottom: 4px;
-    right: 6px;
-    transform: rotate(180deg);
-}
-
-/* CARD COLOR SCHEMES */
+/* Card Color Accents & Neon Glows */
 .card-red {
-    background: var(--uno-red);
+    border-color: rgba(255, 42, 75, 0.4);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 42, 75, 0.25);
 }
-.card-red .card-symbol-center {
-    color: #ef4444;
+.card-red .card-arc-path {
+    stroke: #ff2a4b;
+    filter: drop-shadow(0 0 6px rgba(255, 42, 75, 0.8));
+}
+.card-red .card-center-val,
+.card-red .card-corner {
+    color: #ff3355;
+    text-shadow: 0 0 16px rgba(255, 42, 75, 0.7);
 }
 
 .card-blue {
-    background: var(--uno-blue);
+    border-color: rgba(0, 168, 255, 0.4);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(0, 168, 255, 0.25);
 }
-.card-blue .card-symbol-center {
-    color: #3b82f6;
+.card-blue .card-arc-path {
+    stroke: #00a8ff;
+    filter: drop-shadow(0 0 6px rgba(0, 168, 255, 0.8));
+}
+.card-blue .card-center-val,
+.card-blue .card-corner {
+    color: #18b5ff;
+    text-shadow: 0 0 16px rgba(0, 168, 255, 0.7);
 }
 
 .card-green {
-    background: var(--uno-green);
+    border-color: rgba(0, 230, 118, 0.4);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(0, 230, 118, 0.25);
 }
-.card-green .card-symbol-center {
-    color: #10b981;
+.card-green .card-arc-path {
+    stroke: #00e676;
+    filter: drop-shadow(0 0 6px rgba(0, 230, 118, 0.8));
+}
+.card-green .card-center-val,
+.card-green .card-corner {
+    color: #10f080;
+    text-shadow: 0 0 16px rgba(0, 230, 118, 0.7);
 }
 
 .card-yellow {
-    background: var(--uno-yellow);
+    border-color: rgba(255, 208, 0, 0.4);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 208, 0, 0.25);
 }
-.card-yellow .card-symbol-center {
-    color: #d97706;
+.card-yellow .card-arc-path {
+    stroke: #ffd000;
+    filter: drop-shadow(0 0 6px rgba(255, 208, 0, 0.8));
+}
+.card-yellow .card-center-val,
+.card-yellow .card-corner {
+    color: #ffd620;
+    text-shadow: 0 0 16px rgba(255, 208, 0, 0.7);
 }
 
 .card-wild {
-    background: var(--uno-wild);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 255, 255, 0.2);
 }
-.card-wild .card-symbol-center {
-    font-size: 1rem;
+
+/* Center Value (Bold Geometric Digits & Underlines) */
+.card-center-val {
+    position: relative;
+    z-index: 2;
+    font-family: var(--font-display);
+    font-size: 3.4rem;
     font-weight: 900;
-    letter-spacing: 0.05em;
-    color: #0f172a;
-}
-
-/* Deck Back Stack Visuals */
-.card-back {
-    background: var(--uno-back);
-    border: 3px solid #334155;
-}
-
-.deck-inner-oval {
-    width: 65px;
-    height: 100px;
-    border-radius: 50% / 35%;
-    background: #ef4444;
-    transform: rotate(25deg);
+    line-height: 1;
+    letter-spacing: -0.04em;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-.deck-logo {
-    font-family: var(--font-display);
-    font-size: 1.2rem;
-    font-weight: 900;
-    color: #fbbf24;
-    transform: rotate(-25deg);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+.number-underline {
+    width: 65%;
+    height: 3.5px;
+    border-radius: 2px;
+    margin-top: 3px;
 }
+.card-red .number-underline { background: #ff3355; box-shadow: 0 0 6px #ff3355; }
+.card-blue .number-underline { background: #18b5ff; box-shadow: 0 0 6px #18b5ff; }
+.card-green .number-underline { background: #10f080; box-shadow: 0 0 6px #10f080; }
+.card-yellow .number-underline { background: #ffd620; box-shadow: 0 0 6px #ffd620; }
+
+/* Corner Indices */
+.card-corner {
+    position: absolute;
+    z-index: 3;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.corner-tl {
+    top: 8px;
+    left: 8px;
+}
+
+.corner-br {
+    bottom: 8px;
+    right: 8px;
+    transform: rotate(180deg);
+}
+
+/* WILD CARDS (FOUR OVERLAPPING COLOR TILES FROM PHOTO) */
+.wild-pill-badge {
+    border: 1.5px solid #ffffff;
+    color: #ffffff;
+    font-size: 0.52rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    padding: 2px 5px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.wild-tiles-cluster {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.wild-tile {
+    position: absolute;
+    width: 22px;
+    height: 38px;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+.wild-tile.tile-red {
+    background: #ff2a4b;
+    transform: rotate(-18deg) translate(-10px, -2px);
+    box-shadow: 0 0 12px rgba(255, 42, 75, 0.7);
+    z-index: 1;
+}
+.wild-tile.tile-blue {
+    background: #00a8ff;
+    transform: rotate(12deg) translate(0px, -8px);
+    box-shadow: 0 0 12px rgba(0, 168, 255, 0.7);
+    z-index: 2;
+}
+.wild-tile.tile-yellow {
+    background: #ffd000;
+    transform: rotate(25deg) translate(12px, 0px);
+    box-shadow: 0 0 12px rgba(255, 208, 0, 0.7);
+    z-index: 3;
+}
+.wild-tile.tile-green {
+    background: #00e676;
+    transform: rotate(-6deg) translate(4px, 10px);
+    box-shadow: 0 0 12px rgba(0, 230, 118, 0.7);
+    z-index: 4;
+}
+
+.wild-draw4-text {
+    position: absolute;
+    z-index: 10;
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 14px rgba(255, 255, 255, 0.85);
+}
+
+/* MINIMALISTA CARD BACK (NEON LABYRINTH DECK FROM PHOTO) */
+.card-back {
+    background: #0b0e14;
+    border: 1.5px solid #232a35;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-back-labyrinth {
+    position: absolute;
+    inset: 4px;
+    border-radius: 10px;
+    background: 
+        radial-gradient(circle at center, transparent 35%, #0b0e14 78%),
+        repeating-linear-gradient(45deg, rgba(255, 42, 75, 0.4) 0, rgba(255, 42, 75, 0.4) 2px, transparent 2px, transparent 12px),
+        repeating-linear-gradient(-45deg, rgba(0, 168, 255, 0.4) 0, rgba(0, 168, 255, 0.4) 2px, transparent 2px, transparent 12px),
+        repeating-linear-gradient(90deg, rgba(0, 230, 118, 0.3) 0, rgba(0, 230, 118, 0.3) 2px, transparent 2px, transparent 16px),
+        repeating-linear-gradient(0deg, rgba(255, 208, 0, 0.3) 0, rgba(255, 208, 0, 0.3) 2px, transparent 2px, transparent 16px);
+}
+
+.card-back-logo {
+    position: relative;
+    z-index: 3;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: #ffffff;
+    text-shadow: 
+        0 0 8px #ff2a4b, 
+        0 0 16px #00a8ff, 
+        0 0 24px #ffd000;
+    padding: 4px 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    border-radius: 999px;
+    background: rgba(11, 14, 20, 0.9);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 20px rgba(0, 168, 255, 0.4);
+}
+
 
 .stacked-3 {
     position: absolute;
@@ -959,3 +1081,39 @@ body {
         margin: 0 -18px;
     }
 }
+
+/* ==========================================================
+   DYNAMIC 3D CARD FLIGHT & IMPACT ANIMATIONS
+   ========================================================== */
+.card-flying {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.35);
+    transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.3, 1),
+                top 0.42s cubic-bezier(0.2, 0.9, 0.3, 1),
+                left 0.42s cubic-bezier(0.2, 0.9, 0.3, 1),
+                opacity 0.42s ease-in;
+    will-change: transform, top, left, opacity;
+}
+
+@keyframes discardImpact {
+    0% { transform: scale(0.92); filter: brightness(1.4); }
+    50% { transform: scale(1.08); filter: brightness(1.2); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+.discard-impact {
+    animation: discardImpact 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes chipPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.18); border-color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.8); }
+    100% { transform: scale(1); }
+}
+
+.chip-pulse {
+    animation: chipPulse 0.35s ease-out;
+}
+

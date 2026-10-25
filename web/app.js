@@ -438,35 +438,32 @@ function handleGameStateUpdate(snapshot) {
         return;
     }
 
-    // Determine what action took place between prev and current snapshot
-    const actorId = prev.turnPlayerId;
-    const oldDiscard = prev.discardPile;
-    const newDiscard = snapshot.discardPile;
+    // Always render game arena immediately so turns, countdown timers,
+    // card count badges, and table state update with ZERO latency!
+    renderGameArena(snapshot);
 
-    const discardChanged = newDiscard && (!oldDiscard || 
-        oldDiscard.color !== newDiscard.color || 
-        oldDiscard.kind !== newDiscard.kind || 
-        oldDiscard.value !== newDiscard.value);
+    // If an action took place, trigger non-blocking visual animations for other players
+    if (prev && prev.turnPlayerId !== -1) {
+        const actorId = prev.turnPlayerId;
+        const oldDiscard = prev.discardPile;
+        const newDiscard = snapshot.discardPile;
 
-    const oldDraw = prev.drawPile || 0;
-    const newDraw = snapshot.drawPile || 0;
-    const drawDiff = oldDraw - newDraw;
+        const discardChanged = newDiscard && (!oldDiscard || 
+            oldDiscard.color !== newDiscard.color || 
+            oldDiscard.kind !== newDiscard.kind || 
+            oldDiscard.value !== newDiscard.value);
 
-    // Case 1: Card was thrown on discard pile
-    if (discardChanged && actorId !== -1) {
-        animateCardPlay(actorId, newDiscard, () => {
-            renderGameArena(snapshot);
-        });
-    }
-    // Case 2: Card(s) drawn from draw pile
-    else if (drawDiff > 0 && actorId !== -1) {
-        animateCardDraw(actorId, Math.min(drawDiff, 4), () => {
-            renderGameArena(snapshot);
-        });
-    }
-    // Case 3: Other state changes (e.g. timeout / color change only)
-    else {
-        renderGameArena(snapshot);
+        const oldDraw = prev.drawPile || 0;
+        const newDraw = snapshot.drawPile || 0;
+        const drawDiff = oldDraw - newDraw;
+
+        if (discardChanged && actorId !== -1 && actorId !== state.playerId) {
+            // Animate opponent card thrown onto discard pile (non-blocking)
+            animateCardPlay(actorId, newDiscard);
+        } else if (drawDiff > 0 && actorId !== -1 && actorId !== state.playerId) {
+            // Animate opponent drawing cards (non-blocking)
+            animateCardDraw(actorId, Math.min(drawDiff, 2));
+        }
     }
 
     state.prevSnapshot = snapshot;
@@ -671,6 +668,7 @@ function renderGameArena(snapshot) {
             <div class="chip-avatar">${initial}</div>
             <span class="chip-name">${p.playerName}</span>
             <span class="chip-count">${p.handCardCount}</span>
+            ${isTurn ? '<span class="chip-turn-pill">⏳ Turn</span>' : ''}
         `;
 
         // Vulnerability / Catch UNO
@@ -712,7 +710,7 @@ function renderGameArena(snapshot) {
     const myPlayer = snapshot.players.find(p => p.playerId === state.playerId);
     if (myPlayer) {
         if (myAvatarInitial) myAvatarInitial.textContent = myPlayer.playerName.charAt(0).toUpperCase();
-        if (myPlayerNameDisplay) myPlayerNameDisplay.textContent = "You";
+        if (myPlayerNameDisplay) myPlayerNameDisplay.textContent = isMyTurn ? "You (Your Turn!)" : "You";
         if (myCardCountBadge) myCardCountBadge.textContent = myPlayer.handCardCount;
         if (handCounterPill) handCounterPill.textContent = `${myPlayer.handCardCount} cards`;
         if (mySeatBadge) {
@@ -720,6 +718,10 @@ function renderGameArena(snapshot) {
         }
         if (myTurnArrow) {
             myTurnArrow.classList.toggle('hidden', !isMyTurn);
+        }
+        if (myHandContainer) {
+            myHandContainer.classList.toggle('hand-my-turn', isMyTurn);
+            myHandContainer.classList.toggle('hand-waiting', !isMyTurn);
         }
 
         // UNO Button visibility
@@ -911,7 +913,7 @@ function animateCardPlay(actorId, card, onComplete) {
         flyingCard.remove();
         state.lastClickedCardElement = null;
         if (onComplete) onComplete();
-    }, 420);
+    }, 230);
 }
 
 // 2. Smooth Flight from Draw Deck to Player Hand / Opponent
@@ -971,8 +973,8 @@ function animateCardDraw(actorId, count, onComplete) {
                 if (completed >= totalToAnimate && onComplete) {
                     onComplete();
                 }
-            }, 380);
-        }, i * 90); // Stagger each card draw by 90ms
+            }, 200);
+        }, i * 50); // Stagger each card draw by 50ms
     }
 }
 

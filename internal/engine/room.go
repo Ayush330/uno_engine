@@ -198,7 +198,7 @@ func (r *Room) resetTurnTimer() {
 	}
 	r.turnSeq++
 	currentSeq := r.turnSeq
-	r.turnTimer = time.AfterFunc(17500*time.Millisecond, func() {
+	r.turnTimer = time.AfterFunc(62500*time.Millisecond, func() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 		// Ignore stale timer (if player made a move right at the buzzer)

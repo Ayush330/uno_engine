@@ -112,7 +112,7 @@
                 <div class="turn-status-banner" id="turnStatusBanner">
                     <div class="turn-status-content">
                         <span id="turnStatusText">Waiting for match...</span>
-                        <span id="turnTimerBadge" class="turn-timer-badge hidden">15s</span>
+                        <span id="turnTimerBadge" class="turn-timer-badge hidden">60s</span>
                     </div>
                     <div class="turn-timer-bar-track">
                         <div id="turnTimerBar" class="turn-timer-bar"></div>
@@ -120,26 +120,11 @@
                 </div>
 
                 <div class="table-surface glass-panel" id="tableSurface">
-                    <!-- Direction Orbit Ring -->
-                    <div id="directionRing" class="direction-ring clockwise">
-                        <svg class="direction-ring-svg" viewBox="0 0 400 400">
-                            <circle class="ring-track" cx="200" cy="200" r="185" />
-                            <circle class="ring-pulse" cx="200" cy="200" r="185" />
-                        </svg>
-                        <div class="direction-arrows">
-                            <span class="dir-arrow arrow-top">➤</span>
-                            <span class="dir-arrow arrow-right">➤</span>
-                            <span class="dir-arrow arrow-bottom">➤</span>
-                            <span class="dir-arrow arrow-left">➤</span>
-                        </div>
-                    </div>
-
                     <!-- Shockwave Ripple -->
                     <div id="tableShockwave" class="table-shockwave"></div>
 
                     <!-- Draw Pile Deck -->
                     <div class="pile-wrapper">
-                        <span class="pile-header-label">DRAW DECK</span>
                         <div id="drawPile" class="pile-container draw-pile" title="Click to Draw a Card">
                             <div class="card card-back stacked-3"></div>
                             <div class="card card-back stacked-2"></div>
@@ -149,19 +134,16 @@
                             </div>
                             <span id="drawPileCountBadge" class="pile-count-badge">0</span>
                         </div>
-                        <span class="pile-hint">Click to draw</span>
                     </div>
 
                     <!-- Discard Pile (Top Card) -->
                     <div class="pile-wrapper">
-                        <span class="pile-header-label">DISCARD PILE</span>
                         <div id="discardPile" class="pile-container discard-pile">
                             <div class="discard-pedestal"></div>
                             <div id="topCardContainer" class="top-card-wrapper">
                                 <!-- Rendered Top Card -->
                             </div>
                         </div>
-                        <span class="pile-hint">Play on this</span>
                     </div>
 
                     <!-- Active Color Badge -->
@@ -183,9 +165,6 @@
                     <div class="hand-action-buttons">
                         <button id="btnSayUno" class="btn-say-uno hidden" title="Call UNO!">
                             <span>UNO! 🔥</span>
-                        </button>
-                        <button id="btnDrawTurn" class="btn-draw-action" title="Draw Card">
-                            <span>Draw Card</span>
                         </button>
                         <button id="btnPassTurn" class="btn-pass-action hidden" title="Pass Turn">
                             <span>Pass Turn ⏭</span>

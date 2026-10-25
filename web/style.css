@@ -53,11 +53,13 @@ body {
 .app-container {
     width: 100%;
     max-width: 1400px;
-    height: 100vh;
+    height: 100dvh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     position: relative;
     padding: 0.75rem 1.25rem;
+    overflow: hidden;
 }
 
 /* ==========================================================
@@ -427,33 +429,42 @@ body {
 }
 
 .opponent-chip {
-    background: rgba(19, 26, 42, 0.8);
-    border: 1px solid var(--border-glass);
-    border-radius: 16px;
-    padding: 0.6rem 1rem;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem 0.35rem 0.4rem;
     display: flex;
     align-items: center;
-    gap: 0.8rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    gap: 0.65rem;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .opponent-chip.turn-active {
     border-color: #38bdf8;
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.6), inset 0 0 12px rgba(56, 189, 248, 0.2);
-    transform: scale(1.05);
+    background: rgba(56, 189, 248, 0.12);
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
+    transform: translateY(-2px) scale(1.04);
 }
 
 .opp-avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #475569, #1e293b);
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border: 2px solid rgba(255, 255, 255, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
     font-size: 0.85rem;
+    color: #ffffff;
+}
+
+.opponent-chip.turn-active .opp-avatar {
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px #38bdf8;
 }
 
 .opp-info {
@@ -462,12 +473,12 @@ body {
 }
 
 .opp-name {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 700;
 }
 
 .opp-cards {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: #38bdf8;
     font-weight: 600;
 }
@@ -483,24 +494,30 @@ body {
 
 /* ACTION ANNOUNCEMENT BANNER */
 .action-banner {
-    padding: 0.6rem 1.75rem;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(59, 130, 246, 0.2));
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.45rem 1.4rem;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(56, 189, 248, 0.4);
     border-radius: 999px;
     font-family: var(--font-display);
-    font-size: 1.05rem;
-    font-weight: 800;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: #ffffff;
-    box-shadow: 0 0 25px rgba(56, 189, 248, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.1);
-    animation: popAction 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 20;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.3);
+    animation: popAction 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 30;
+    pointer-events: none;
+    white-space: nowrap;
 }
 
 @keyframes popAction {
-    0% { transform: scale(0.7) translateY(-10px); opacity: 0; }
-    60% { transform: scale(1.08) translateY(0); opacity: 1; }
-    100% { transform: scale(1) translateY(0); opacity: 1; }
+    0% { transform: translateX(-50%) scale(0.7) translateY(-8px); opacity: 0; }
+    60% { transform: translateX(-50%) scale(1.05) translateY(0); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
 }
 
 .turn-status-banner {
@@ -632,86 +649,6 @@ body {
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 50px rgba(255, 214, 0, 0.25);
 }
 
-/* Direction Orbit Ring */
-.direction-ring {
-    position: absolute;
-    width: 390px;
-    height: 390px;
-    top: 50%;
-    left: 50%;
-    margin-top: -195px;
-    margin-left: -195px;
-    pointer-events: none;
-    z-index: 1;
-    border-radius: 50%;
-    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.direction-ring-svg {
-    width: 100%;
-    height: 100%;
-}
-
-.ring-track {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.05);
-    stroke-width: 2;
-}
-
-.ring-pulse {
-    fill: none;
-    stroke: #38bdf8;
-    stroke-width: 2.5;
-    stroke-dasharray: 25 45;
-    filter: drop-shadow(0 0 8px #38bdf8);
-    opacity: 0.85;
-}
-
-.direction-ring.clockwise {
-    animation: spinClockwise 14s linear infinite;
-}
-
-.direction-ring.counter-clockwise {
-    animation: spinCounterClockwise 14s linear infinite;
-}
-
-.direction-ring.reverse-flash {
-    animation: flashReverse 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes spinClockwise {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-@keyframes spinCounterClockwise {
-    from { transform: rotate(360deg); }
-    to { transform: rotate(0deg); }
-}
-
-@keyframes flashReverse {
-    0% { transform: scale(0.9); filter: brightness(3) drop-shadow(0 0 35px #ff2a4b); }
-    50% { transform: scale(1.15); filter: brightness(4) drop-shadow(0 0 50px #38bdf8); }
-    100% { transform: scale(1); filter: brightness(1); }
-}
-
-.direction-arrows {
-    position: absolute;
-    inset: 0;
-}
-
-.dir-arrow {
-    position: absolute;
-    font-size: 0.85rem;
-    color: #38bdf8;
-    text-shadow: 0 0 10px #38bdf8;
-    line-height: 1;
-}
-
-.arrow-top { top: 0; left: 50%; transform: translateX(-50%) rotate(0deg); }
-.arrow-right { top: 50%; right: 0; transform: translateY(-50%) rotate(90deg); }
-.arrow-bottom { bottom: 0; left: 50%; transform: translateX(-50%) rotate(180deg); }
-.arrow-left { top: 50%; left: 0; transform: translateY(-50%) rotate(270deg); }
 
 /* Table Action Shockwave */
 .table-shockwave {
@@ -831,19 +768,30 @@ body {
 .card {
     width: 96px;
     height: 144px;
-    border-radius: 14px;
+    border-radius: 16px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #11141a;
-    border: 1.5px solid #232a35;
-    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+    background: #181f2c;
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 12px 26px -6px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.25);
     cursor: pointer;
     transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform-origin: bottom center;
     overflow: hidden;
     user-select: none;
+}
+
+/* Card Glossy Sheen Overlay */
+.card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.04) 45%, transparent 50%);
+    pointer-events: none;
+    z-index: 5;
+    border-radius: 14px;
 }
 
 /* Playable vs Unplayable Cards */
@@ -856,21 +804,22 @@ body {
     content: '';
     position: absolute;
     inset: -2px;
-    border-radius: 15px;
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.45);
+    border-radius: 17px;
+    border: 2.5px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.6), 0 0 28px #38bdf8;
     pointer-events: none;
     animation: playablePulse 1.6s infinite alternate;
+    z-index: 6;
 }
 
 @keyframes playablePulse {
-    0% { opacity: 0.4; box-shadow: 0 0 8px rgba(255, 255, 255, 0.3); }
-    100% { opacity: 0.95; box-shadow: 0 0 20px rgba(255, 255, 255, 0.7), 0 0 30px #38bdf8; }
+    0% { opacity: 0.45; box-shadow: 0 0 10px rgba(255, 255, 255, 0.4); }
+    100% { opacity: 0.95; box-shadow: 0 0 22px rgba(255, 255, 255, 0.8), 0 0 32px #38bdf8; }
 }
 
 .card.unplayable {
     opacity: 0.45;
-    filter: grayscale(40%) brightness(0.7);
+    filter: grayscale(35%) brightness(0.68);
     cursor: not-allowed;
     transition: opacity 0.3s, filter 0.3s, transform 0.2s;
 }
@@ -885,79 +834,50 @@ body {
     40%, 80% { transform: translateX(8px) rotate(3deg); }
 }
 
-/* Sweeping Dynamic Vector Arcs (Signature Minimalista Look) */
-.card-arc-svg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* Card Color Accents & Neon Glows */
+/* Authentic Vibrant Color Backgrounds */
 .card-red {
-    border-color: rgba(255, 42, 75, 0.4);
-    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 42, 75, 0.25);
-}
-.card-red .card-arc-path {
-    stroke: #ff2a4b;
-    filter: drop-shadow(0 0 6px rgba(255, 42, 75, 0.8));
-}
-.card-red .card-center-val,
-.card-red .card-corner {
-    color: #ff3355;
-    text-shadow: 0 0 16px rgba(255, 42, 75, 0.7);
+    background: linear-gradient(145deg, #ef4444 0%, #b91c1c 100%);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.75), 0 0 18px rgba(239, 68, 68, 0.45);
 }
 
 .card-blue {
-    border-color: rgba(0, 168, 255, 0.4);
-    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(0, 168, 255, 0.25);
-}
-.card-blue .card-arc-path {
-    stroke: #00a8ff;
-    filter: drop-shadow(0 0 6px rgba(0, 168, 255, 0.8));
-}
-.card-blue .card-center-val,
-.card-blue .card-corner {
-    color: #18b5ff;
-    text-shadow: 0 0 16px rgba(0, 168, 255, 0.7);
+    background: linear-gradient(145deg, #2563eb 0%, #1d4ed8 100%);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.75), 0 0 18px rgba(37, 99, 235, 0.45);
 }
 
 .card-green {
-    border-color: rgba(0, 230, 118, 0.4);
-    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(0, 230, 118, 0.25);
-}
-.card-green .card-arc-path {
-    stroke: #00e676;
-    filter: drop-shadow(0 0 6px rgba(0, 230, 118, 0.8));
-}
-.card-green .card-center-val,
-.card-green .card-corner {
-    color: #10f080;
-    text-shadow: 0 0 16px rgba(0, 230, 118, 0.7);
+    background: linear-gradient(145deg, #10b981 0%, #047857 100%);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.75), 0 0 18px rgba(16, 185, 129, 0.45);
 }
 
 .card-yellow {
-    border-color: rgba(255, 208, 0, 0.4);
-    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 208, 0, 0.25);
-}
-.card-yellow .card-arc-path {
-    stroke: #ffd000;
-    filter: drop-shadow(0 0 6px rgba(255, 208, 0, 0.8));
-}
-.card-yellow .card-center-val,
-.card-yellow .card-corner {
-    color: #ffd620;
-    text-shadow: 0 0 16px rgba(255, 208, 0, 0.7);
+    background: linear-gradient(145deg, #f59e0b 0%, #d97706 100%);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.75), 0 0 18px rgba(245, 158, 11, 0.45);
 }
 
 .card-wild {
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #1e293b 0%, #090d16 100%);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 255, 255, 0.25);
 }
 
-/* Center Value (Bold Geometric Digits & Underlines) */
+/* Authentic Tilted White Center Oval */
+.card-oval {
+    position: absolute;
+    width: 66px;
+    height: 104px;
+    background: #ffffff;
+    border-radius: 50%;
+    transform: rotate(-25deg);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+}
+
+/* Center Value (Bold Geometric Digits & Contrast Colors) */
 .card-center-val {
     position: relative;
     z-index: 2;
@@ -970,28 +890,38 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
 }
+
+.card-red .card-center-val { color: #dc2626; }
+.card-blue .card-center-val { color: #1d4ed8; }
+.card-green .card-center-val { color: #047857; }
+.card-yellow .card-center-val { color: #b45309; }
+.card-wild .card-center-val { color: #ffffff; }
 
 .number-underline {
-    width: 65%;
-    height: 3.5px;
+    width: 60%;
+    height: 4px;
     border-radius: 2px;
-    margin-top: 3px;
+    margin-top: 2px;
 }
-.card-red .number-underline { background: #ff3355; box-shadow: 0 0 6px #ff3355; }
-.card-blue .number-underline { background: #18b5ff; box-shadow: 0 0 6px #18b5ff; }
-.card-green .number-underline { background: #10f080; box-shadow: 0 0 6px #10f080; }
-.card-yellow .number-underline { background: #ffd620; box-shadow: 0 0 6px #ffd620; }
+.card-red .number-underline { background: #dc2626; }
+.card-blue .number-underline { background: #1d4ed8; }
+.card-green .number-underline { background: #047857; }
+.card-yellow .number-underline { background: #b45309; }
 
-/* Corner Indices */
+/* Corner Indices: Crisp White with Subtle Shadow */
 .card-corner {
     position: absolute;
     z-index: 3;
     font-family: var(--font-display);
     font-weight: 900;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     line-height: 1;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
+
 
 .corner-tl {
     top: 8px;
@@ -1308,13 +1238,13 @@ body {
 }
 
 .my-hand-container .card.playable:hover {
-    transform: translateY(-34px) scale(1.18) !important;
+    transform: translateY(-28px) scale(1.15) !important;
     z-index: 100 !important;
-    box-shadow: 0 24px 48px -6px rgba(0, 0, 0, 0.95), 0 0 28px rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 20px 42px -6px rgba(0, 0, 0, 0.9), 0 0 24px rgba(255, 255, 255, 0.5) !important;
 }
 
 .my-hand-container .card.unplayable:hover {
-    transform: translateY(-8px) scale(1.02) !important;
+    transform: translateY(-6px) scale(1.02) !important;
 }
 
 /* ==========================================================
@@ -1412,27 +1342,106 @@ body {
    RESPONSIVENESS (MOBILE FRIENDLY)
    ========================================================== */
 @media (max-width: 640px) {
+    .app-container {
+        padding: 0.4rem 0.6rem;
+    }
+
+    .game-header {
+        padding: 0.25rem 0;
+    }
+
+    .logo-uno {
+        font-size: 1.4rem;
+    }
+
+    .turn-status-banner {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+
+    /* Compact Table Surface */
     .table-surface {
-        gap: 1.5rem;
-        padding: 1.5rem 2rem;
+        gap: 1.25rem;
+        padding: 1rem 1.25rem;
+        border-radius: 20px;
+        max-width: 100%;
     }
 
+    .pile-wrapper {
+        gap: 0.25rem;
+    }
+
+    .pile-header-label {
+        font-size: 0.65rem;
+    }
+
+    .pile-hint {
+        font-size: 0.65rem;
+    }
+
+    /* Hand & Card Sizing on Mobile */
     .card {
-        width: 75px;
-        height: 112px;
+        width: 68px;
+        height: 102px;
+        border-radius: 11px;
     }
 
-    .card-oval {
-        width: 54px;
-        height: 86px;
+    .card .card-oval {
+        width: 48px;
+        height: 74px;
     }
 
-    .card-symbol-center {
-        font-size: 1.8rem;
+    .card .card-center-val {
+        font-size: 2.3rem;
+    }
+
+    .card .card-corner {
+        font-size: 0.8rem;
+    }
+
+    .corner-tl {
+        top: 4px;
+        left: 5px;
+    }
+
+    .corner-br {
+        bottom: 4px;
+        right: 5px;
+    }
+
+    .player-hand-tray {
+        padding: 0.35rem 0;
+    }
+
+    .my-hand-container {
+        padding: 0.5rem 0.25rem 1.25rem 0.25rem;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
     }
 
     .my-hand-container .card {
-        margin: 0 -18px;
+        margin: 0 -11px;
+    }
+
+    .hand-action-buttons button {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    /* Opponents row on mobile */
+    .opponents-area {
+        gap: 0.5rem;
+        padding: 0.25rem 0;
+        overflow-x: auto;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .opponent-chip {
+        padding: 0.35rem 0.65rem;
+        min-width: 110px;
     }
 }
 

@@ -40,17 +40,18 @@ const (
 )
 
 type GameState struct {
-	id               int
-	drawpile         *DrawPile
-	discardPile      *DiscardPile
-	players          []*Player
-	direction        Direction
-	currentTurnIndex int
-	stateName        StateName
-	lastAction       string
+	id                 int
+	drawpile           *DrawPile
+	discardPile        *DiscardPile
+	players            []*Player
+	direction          Direction
+	currentTurnIndex   int
+	stateName          StateName
+	lastAction         string
 	turnDeadline       int64
 	hasDrawnCard       bool
 	vulnerablePlayerID int
+	unoGraceDeadline   int64
 }
 
 func NewGameState(id int) *GameState {
@@ -77,11 +78,11 @@ func NewGameState(id int) *GameState {
 		panic(err)
 	}
 	return &GameState{
-		id:               id,
-		drawpile:         drawPile,
-		discardPile:      discardPile,
-		players:          nil,
-		direction:        CLOCKWISE,
+		id:                 id,
+		drawpile:           drawPile,
+		discardPile:        discardPile,
+		players:            nil,
+		direction:          CLOCKWISE,
 		currentTurnIndex:   -1,
 		stateName:          StateWaitingForPlayers,
 		lastAction:         "Waiting for players to join...",
@@ -177,11 +178,17 @@ func (g *GameState) PlayCard(playerId int, card Card, color Color) error {
 		g.lastAction = fmt.Sprintf("🏆 %s has 0 cards and won the game!", currentPlayer.name)
 		currentPlayer.UpdateFinishedPlaying(true)
 		g.vulnerablePlayerID = -1
-	} else if len(player.handCards) == 1 && !player.HasSaidUno() {
-		// Player played down to 1 card without saying UNO: vulnerable until next player moves!
+		g.unoGraceDeadline = 0
+	} else if len(player.handCards) == 1 {
+		// Only one card is left: start 2.5s grace period!
+		player.SetSaidUno(false)
 		g.vulnerablePlayerID = player.id
+		g.unoGraceDeadline = time.Now().Add(2500 * time.Millisecond).UnixMilli()
 	} else {
+		// Hand has > 1 card: can never be vulnerable or have UNO
+		player.SetSaidUno(false)
 		g.vulnerablePlayerID = -1
+		g.unoGraceDeadline = 0
 	}
 	var countOfActivePlayers int
 	for _, player := range g.players {
@@ -226,6 +233,11 @@ func (g *GameState) setNextTurnIndex(kind Kind) {
 		// add it to currentplayers hand
 		victimPlayer := g.players[victimPlayerIndex]
 		victimPlayer.AddToHand(cards)
+		victimPlayer.SetSaidUno(false)
+		if g.vulnerablePlayerID == victimPlayer.id {
+			g.vulnerablePlayerID = -1
+			g.unoGraceDeadline = 0
+		}
 		nextTurn := findNextPlayerIndex(victimPlayerIndex, g.direction, g.players)
 		g.currentTurnIndex = nextTurn
 	default:
@@ -270,6 +282,7 @@ func findNextPlayerIndex(curr int, direction Direction, p []*Player) int {
 func (g *GameState) DrawCard(playerID int) error {
 	// Action taken: closes any active UNO vulnerability window
 	g.vulnerablePlayerID = -1
+	g.unoGraceDeadline = 0
 
 	//Verify player turn
 	// is playing
@@ -293,6 +306,7 @@ func (g *GameState) DrawCard(playerID int) error {
 	// We need to determine the type of card that is drawn
 	// color
 	player.AddCardToHand(card[0])
+	player.SetSaidUno(false)
 	//removig force handling
 	//err = g.PlayCard(playerID, card[0], color)
 	g.hasDrawnCard = true
@@ -320,8 +334,8 @@ type GetGameSnapShot struct {
 }
 
 type PlayerInfo struct {
-	PlayerId      int    `json:"playerId"`
-	PlayerName    string `json:"playerName"`
+	PlayerId          int    `json:"playerId"`
+	PlayerName        string `json:"playerName"`
 	IsActive          bool   `json:"isActive"`
 	HandCardCount     int    `json:"handCardCount"`
 	HandCards         []Card `json:"handCards"`
@@ -342,8 +356,11 @@ func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
 			IsActive:      !g.players[i].FinishedPlaying(),
 			HandCardCount: len(g.players[i].handCards),
 			HandCards:     playerHandCards,
-			HasSaidUno:        g.players[i].HasSaidUno(),
-			IsVulnerableToUno: (g.vulnerablePlayerID == g.players[i].id),
+			HasSaidUno:    g.players[i].HasSaidUno(),
+			IsVulnerableToUno: (g.players[i].id == g.vulnerablePlayerID &&
+				len(g.players[i].handCards) == 1 &&
+				!g.players[i].HasSaidUno() &&
+				time.Now().UnixMilli() >= g.unoGraceDeadline),
 		}
 		pInfo[i] = info
 	}
@@ -360,7 +377,7 @@ func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
 		DrawPile:     len(g.drawpile.cards),
 		Players:      pInfo,
 		LastAction:   g.lastAction,
-		TurnDuration: 15,
+		TurnDuration: 60,
 		TurnDeadline: g.turnDeadline,
 		HasDrawnCard: g.hasDrawnCard,
 	}
@@ -376,8 +393,11 @@ func (g *GameState) DebugGameSnapshot() *GetGameSnapShot {
 			IsActive:      !g.players[i].FinishedPlaying(),
 			HandCardCount: len(g.players[i].handCards),
 			HandCards:     playerHandCards,
-			HasSaidUno:        g.players[i].HasSaidUno(),
-			IsVulnerableToUno: (g.vulnerablePlayerID == g.players[i].id),
+			HasSaidUno:    g.players[i].HasSaidUno(),
+			IsVulnerableToUno: (g.players[i].id == g.vulnerablePlayerID &&
+				len(g.players[i].handCards) == 1 &&
+				!g.players[i].HasSaidUno() &&
+				time.Now().UnixMilli() >= g.unoGraceDeadline),
 		}
 		pInfo[i] = info
 	}
@@ -398,7 +418,7 @@ func (g *GameState) DebugGameSnapshot() *GetGameSnapShot {
 		DrawPile:     len(g.drawpile.cards),
 		Players:      pInfo,
 		LastAction:   g.lastAction,
-		TurnDuration: 15,
+		TurnDuration: 60,
 		TurnDeadline: g.turnDeadline,
 		HasDrawnCard: g.hasDrawnCard,
 	}
@@ -434,7 +454,7 @@ func (g *GameState) CurrentTurnPlayerID() int {
 }
 
 func (g *GameState) resetTurnDeadline() {
-	g.turnDeadline = time.Now().Add(15 * time.Second).UnixMilli()
+	g.turnDeadline = time.Now().Add(60 * time.Second).UnixMilli()
 }
 
 func (g *GameState) PassTurn(playerId int) error {
@@ -446,6 +466,7 @@ func (g *GameState) PassTurn(playerId int) error {
 	}
 	g.hasDrawnCard = false
 	g.vulnerablePlayerID = -1
+	g.unoGraceDeadline = 0
 	g.lastAction = fmt.Sprintf("%s passed the turn.", g.players[g.currentTurnIndex].name)
 	g.currentTurnIndex = findNextPlayerIndex(g.currentTurnIndex, g.direction, g.players)
 	g.resetTurnDeadline()
@@ -461,13 +482,12 @@ func (g *GameState) SayUno(playerID int) error {
 	if player == nil {
 		return ErrPlayerNotFound
 	}
-	if len(player.handCards) > 2 {
-		return errors.New("domain: cannot call UNO with more than 2 cards")
+	if player.FinishedPlaying() || len(player.handCards) != 1 {
+		return errors.New("domain: can only shout UNO when holding exactly 1 card")
 	}
 	player.SetSaidUno(true)
-	if g.vulnerablePlayerID == playerID {
-		g.vulnerablePlayerID = -1
-	}
+	g.vulnerablePlayerID = -1
+	g.unoGraceDeadline = 0
 	g.lastAction = fmt.Sprintf("🔥 %s shouted UNO!", player.name)
 	return nil
 }
@@ -481,6 +501,11 @@ func (g *GameState) CatchUno(accuserPlayerID int, targetPlayerID int) error {
 	if target == nil {
 		return ErrPlayerNotFound
 	}
+	// grace period has not completed, reject the clainmmmmmm...
+	if time.Now().UnixMilli() < g.unoGraceDeadline {
+		return errors.New("domain: player is still within UNO grace period")
+	}
+
 	if g.vulnerablePlayerID != targetPlayerID || target.FinishedPlaying() || len(target.handCards) != 1 || target.HasSaidUno() {
 		return errors.New("domain: player is not vulnerable to UNO penalty")
 	}
@@ -491,6 +516,7 @@ func (g *GameState) CatchUno(accuserPlayerID int, targetPlayerID int) error {
 	target.AddToHand(penaltyCards)
 	target.SetSaidUno(false)
 	g.vulnerablePlayerID = -1
+	g.unoGraceDeadline = 0
 	g.lastAction = fmt.Sprintf("🚨 %s caught %s for not saying UNO! %s draws 3 cards!", accuser.name, target.name, target.name)
 	return nil
 }

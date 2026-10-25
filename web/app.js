@@ -125,7 +125,6 @@ const turnTimerBadge = document.getElementById('turnTimerBadge');
 const turnTimerBar = document.getElementById('turnTimerBar');
 const drawPileHint = document.getElementById('drawPileHint');
 const tableSurface = document.getElementById('tableSurface');
-const directionRing = document.getElementById('directionRing');
 const tableShockwave = document.getElementById('tableShockwave');
 const confettiCanvas = document.getElementById('confettiCanvas');
 
@@ -504,21 +503,19 @@ function renderGameArena(snapshot) {
     const isMyTurn = (snapshot.turnPlayerId === state.playerId);
 
     // Turn Timer Controller
-    startTurnTimer(snapshot.turnDeadline, snapshot.turnDuration || 15);
+    startTurnTimer(snapshot.turnDeadline, snapshot.turnDuration || 60);
 
     // Turn Banner & Action Prompt
     if (isMyTurn) {
         turnStatusBanner.className = "turn-status-banner my-turn";
         if (snapshot.hasDrawnCard) {
-            turnStatusText.textContent = "★ Card Drawn! Play a valid card or PASS";
+            turnStatusText.textContent = "★ Card Drawn! Play or PASS";
             btnPassTurn.classList.remove('hidden');
-            btnDrawTurn.classList.add('hidden');
-            if (drawPileHint) drawPileHint.textContent = "Click to pass turn";
+            if (btnDrawTurn) btnDrawTurn.classList.add('hidden');
         } else {
-            turnStatusText.textContent = "★ YOUR TURN! Play a card or draw";
+            turnStatusText.textContent = "★ YOUR TURN! Play or Tap Deck";
             btnPassTurn.classList.add('hidden');
-            btnDrawTurn.classList.remove('hidden');
-            if (drawPileHint) drawPileHint.textContent = "Click to draw";
+            if (btnDrawTurn) btnDrawTurn.classList.remove('hidden');
         }
         playSound('turn');
     } else {
@@ -527,8 +524,7 @@ function renderGameArena(snapshot) {
         turnStatusBanner.className = "turn-status-banner";
         turnStatusText.textContent = `Waiting for ${name}'s turn...`;
         btnPassTurn.classList.add('hidden');
-        btnDrawTurn.classList.remove('hidden');
-        if (drawPileHint) drawPileHint.textContent = "Opponent's turn";
+        if (btnDrawTurn) btnDrawTurn.classList.add('hidden');
     }
 
     // Action Announcement Banner
@@ -586,9 +582,9 @@ function renderGameArena(snapshot) {
         }
     });
 
-    // Check If I Should Call UNO (1 or 2 cards left and haven't called yet)
+    // Check If I Should Call UNO (strictly 1 card left and haven't called yet)
     const myPlayer = snapshot.players.find(p => p.playerId === state.playerId);
-    if (myPlayer && myPlayer.handCardCount <= 2 && myPlayer.handCardCount >= 1 && !myPlayer.hasSaidUno) {
+    if (myPlayer && myPlayer.handCardCount === 1 && !myPlayer.hasSaidUno) {
         btnSayUno.classList.remove('hidden');
     } else {
         btnSayUno.classList.add('hidden');
@@ -613,23 +609,6 @@ function renderGameArena(snapshot) {
         }
     }
 
-    // Direction Orbit Ring (snapshot.direction: 1 or -1)
-    if (directionRing) {
-        if (snapshot.direction === -1) {
-            directionRing.classList.remove('clockwise');
-            directionRing.classList.add('counter-clockwise');
-        } else {
-            directionRing.classList.remove('counter-clockwise');
-            directionRing.classList.add('clockwise');
-        }
-
-        if (state.prevSnapshot && state.prevSnapshot.direction !== undefined && state.prevSnapshot.direction !== snapshot.direction) {
-            directionRing.classList.remove('reverse-flash');
-            void directionRing.offsetWidth;
-            directionRing.classList.add('reverse-flash');
-            setTimeout(() => directionRing.classList.remove('reverse-flash'), 800);
-        }
-    }
 
     // Render Draw Pile Count
     drawPileCountBadge.textContent = snapshot.drawPile || 0;
@@ -878,11 +857,9 @@ function createCardElement(card, isInteractive = false) {
         `;
     }
 
+    const hasOval = (card.kind >= 1 && card.kind <= 4);
     cardDiv.innerHTML = `
-        <svg class="card-arc-svg" viewBox="0 0 96 144" fill="none" preserveAspectRatio="none">
-            <path class="card-arc-path" d="M 12 134 C 12 55, 38 18, 86 10" stroke-width="3" stroke-linecap="round"/>
-            <path class="card-arc-path" d="M 84 10 C 84 89, 58 126, 10 134" stroke-width="1.2" opacity="0.3" stroke-linecap="round"/>
-        </svg>
+        ${hasOval ? '<div class="card-oval"></div>' : ''}
         <div class="card-corner corner-tl">${cornerHtml}</div>
         ${centerHtml}
         <div class="card-corner corner-br">${cornerHtml}</div>
@@ -936,7 +913,7 @@ function playCardAction(card, chosenColor) {
 }
 
 // Turn Countdown Timer Engine
-function startTurnTimer(deadlineMs, durationSec = 15) {
+function startTurnTimer(deadlineMs, durationSec = 60) {
     if (turnTimerInterval) {
         clearInterval(turnTimerInterval);
         turnTimerInterval = null;
@@ -1024,7 +1001,7 @@ function triggerCatchUno(targetId) {
 }
 
 drawPile.addEventListener('click', triggerDraw);
-btnDrawTurn.addEventListener('click', triggerDraw);
+if (btnDrawTurn) btnDrawTurn.addEventListener('click', triggerDraw);
 btnPassTurn.addEventListener('click', triggerPass);
 btnSayUno.addEventListener('click', triggerSayUno);
 

@@ -628,10 +628,10 @@ function renderGameArena(snapshot) {
                 cardElem.classList.add(playable ? 'playable' : 'unplayable');
             }
 
-            // Natural arced fan-out with parabolic vertical offset
+            // Natural subtle arc suited for clean card readability in unified stage
             const offset = idx - (totalCards - 1) / 2;
-            const rotateDeg = (offset * 3.5).toFixed(1);
-            const translateY = (Math.abs(offset) * 4).toFixed(1);
+            const rotateDeg = (offset * 1.8).toFixed(1);
+            const translateY = (Math.abs(offset) * 2.2).toFixed(1);
             cardElem.style.transform = `translateY(${translateY}px) rotate(${rotateDeg}deg)`;
 
             cardElem.addEventListener('click', () => {

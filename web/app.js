@@ -12,7 +12,8 @@ let state = {
     ws: null,
     gameSnapshot: null,
     pendingWildCard: null,
-    lastClickedCardElement: null
+    lastClickedCardElement: null,
+    soundMuted: false
 };
 
 // --- Color & Kind Mapping Constants ---
@@ -41,6 +42,7 @@ const SYMBOL_DISPLAY = {
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
+    if (state.soundMuted) return;
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -104,9 +106,24 @@ const waitingRoomCode = document.getElementById('waitingRoomCode');
 const waitingPlayerSlots = document.getElementById('waitingPlayerSlots');
 const btnStartGame = document.getElementById('btnStartGame');
 const waitingHostNotice = document.getElementById('waitingHostNotice');
+const btnCopyWaitingInvite = document.getElementById('btnCopyWaitingInvite');
 
-// Game Elements
+// Game Elements & Tabletop Seats
 const opponentsArea = document.getElementById('opponentsArea');
+const seatNorth = document.getElementById('seatNorth');
+const seatWest = document.getElementById('seatWest');
+const seatEast = document.getElementById('seatEast');
+const seatSouth = document.getElementById('seatSouth');
+const mySeatBadge = document.getElementById('mySeatBadge');
+const myAvatarInitial = document.getElementById('myAvatarInitial');
+const myPlayerNameDisplay = document.getElementById('myPlayerNameDisplay');
+const myTurnArrow = document.getElementById('myTurnArrow');
+const handCounterPill = document.getElementById('handCounterPill');
+const hudRoomInfo = document.getElementById('hudRoomInfo');
+const btnSoundToggle = document.getElementById('btnSoundToggle');
+const soundIcon = document.getElementById('soundIcon');
+const btnLeaveRoom = document.getElementById('btnLeaveRoom');
+
 const turnStatusBanner = document.getElementById('turnStatusBanner');
 const turnStatusText = document.getElementById('turnStatusText');
 const actionBanner = document.getElementById('actionBanner');
@@ -114,6 +131,7 @@ const actionBannerText = document.getElementById('actionBannerText');
 const topCardContainer = document.getElementById('topCardContainer');
 const drawPile = document.getElementById('drawPile');
 const drawPileCountBadge = document.getElementById('drawPileCountBadge');
+const activeColorIndicator = document.getElementById('activeColorIndicator');
 const activeColorDot = document.getElementById('activeColorDot');
 const activeColorName = document.getElementById('activeColorName');
 const myHandContainer = document.getElementById('myHandContainer');
@@ -244,10 +262,10 @@ function switchScreen(screenName) {
     screens[screenName].classList.add('active');
 
     if (screenName !== 'lobby') {
-        headerRoomInfo.classList.remove('hidden');
-        roomCodeDisplay.textContent = state.roomId;
+        if (headerRoomInfo) headerRoomInfo.classList.remove('hidden');
+        if (roomCodeDisplay) roomCodeDisplay.textContent = state.roomId;
     } else {
-        headerRoomInfo.classList.add('hidden');
+        if (headerRoomInfo) headerRoomInfo.classList.add('hidden');
     }
 }
 
@@ -344,14 +362,25 @@ joinRoomForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Copy Invite Link to Clipboard
-btnCopyInvite.addEventListener('click', () => {
+// Copy Invite Link to Clipboard (Waiting Lobby & In-Game HUD)
+function copyInviteLink() {
+    if (!state.roomId) return;
     playSound('click');
     const inviteUrl = `${window.location.origin}/?room=${state.roomId}`;
     navigator.clipboard.writeText(inviteUrl).then(() => {
         showToast("Invite link copied to clipboard! 📋");
+    }).catch(() => {
+        prompt("Copy room link:", inviteUrl);
     });
-});
+}
+
+if (btnCopyWaitingInvite) {
+    btnCopyWaitingInvite.addEventListener('click', copyInviteLink);
+}
+
+if (btnCopyInvite) {
+    btnCopyInvite.addEventListener('click', copyInviteLink);
+}
 
 // ==========================================================
 // WEBSOCKET REAL-TIME CONNECTION
@@ -448,6 +477,11 @@ function renderWaitingLobby(snapshot) {
     switchScreen('waiting');
     waitingPlayerSlots.innerHTML = "";
 
+    // If host left, the first remaining player becomes the new host
+    if (snapshot.players && snapshot.players.length > 0) {
+        state.isHost = (snapshot.players[0].playerId === state.playerId);
+    }
+
     snapshot.players.forEach(player => {
         const slot = document.createElement('div');
         slot.className = "player-slot filled";
@@ -471,6 +505,7 @@ function renderWaitingLobby(snapshot) {
     }
 
     // Show "Start Game" button only for Host when >= 2 players
+    const startSpan = btnStartGame.querySelector('span');
     if (state.isHost) {
         waitingHostNotice.classList.add('hidden');
         btnStartGame.classList.remove('hidden');
@@ -478,13 +513,16 @@ function renderWaitingLobby(snapshot) {
         if (snapshot.players.length < 2) {
             btnStartGame.style.opacity = "0.5";
             btnStartGame.style.cursor = "not-allowed";
+            if (startSpan) startSpan.textContent = "Waiting for players (min 2)...";
         } else {
             btnStartGame.style.opacity = "1";
             btnStartGame.style.cursor = "pointer";
+            if (startSpan) startSpan.textContent = `🎮 Start Game (${snapshot.players.length}/4 Ready!)`;
         }
     } else {
         btnStartGame.classList.add('hidden');
         waitingHostNotice.classList.remove('hidden');
+        waitingHostNotice.textContent = `Waiting for host to start the game (${snapshot.players.length}/4 ready)...`;
     }
 }
 
@@ -495,6 +533,66 @@ btnStartGame.addEventListener('click', () => {
         state.ws.send(JSON.stringify({ action: "START_GAME" }));
     }
 });
+
+// 2a. Dynamic Draw Pile Layer Rendering
+// Creates 0-5 visual deck layers below the top card based on remaining draw pile count
+const drawPileLayers = document.getElementById('drawPileLayers');
+const discardPileLayers = document.getElementById('discardPileLayers');
+const discardPileCountBadge = document.getElementById('discardPileCountBadge');
+
+let lastDrawLayerCount = -1;
+let lastDiscardLayerCount = -1;
+
+function renderDrawPileLayers(drawCount) {
+    // Map card count to visual layers: 0 cards = 0 layers, 1-10 = 1, 11-25 = 2, 26-50 = 3, 51-75 = 4, 76+ = 5
+    let layerCount;
+    if (drawCount <= 0) layerCount = 0;
+    else if (drawCount <= 10) layerCount = 1;
+    else if (drawCount <= 25) layerCount = 2;
+    else if (drawCount <= 50) layerCount = 3;
+    else if (drawCount <= 75) layerCount = 4;
+    else layerCount = 5;
+
+    // Skip DOM updates if layer count hasn't changed
+    if (layerCount === lastDrawLayerCount) return;
+    lastDrawLayerCount = layerCount;
+
+    if (!drawPileLayers) return;
+    drawPileLayers.innerHTML = '';
+    for (let i = 0; i < layerCount; i++) {
+        const layer = document.createElement('div');
+        layer.className = 'draw-deck-layer';
+        drawPileLayers.appendChild(layer);
+    }
+}
+
+function renderDiscardPileLayers(discardCount) {
+    // Map discard pile size to visual underlays: 0-1 = 0 underlays (just the top card), 2-5 = 1, 6-15 = 2, 16-30 = 3, 31-50 = 4, 51+ = 5
+    let layerCount;
+    if (discardCount <= 1) layerCount = 0;
+    else if (discardCount <= 5) layerCount = 1;
+    else if (discardCount <= 15) layerCount = 2;
+    else if (discardCount <= 30) layerCount = 3;
+    else if (discardCount <= 50) layerCount = 4;
+    else layerCount = 5;
+
+    // Update the discard count badge
+    if (discardPileCountBadge) {
+        discardPileCountBadge.textContent = discardCount;
+    }
+
+    // Skip DOM updates if layer count hasn't changed
+    if (layerCount === lastDiscardLayerCount) return;
+    lastDiscardLayerCount = layerCount;
+
+    if (!discardPileLayers) return;
+    discardPileLayers.innerHTML = '';
+    for (let i = 0; i < layerCount; i++) {
+        const layer = document.createElement('div');
+        layer.className = 'discard-underlay';
+        discardPileLayers.appendChild(layer);
+    }
+}
 
 // 2. Render Live Game Arena
 function renderGameArena(snapshot) {
@@ -507,23 +605,19 @@ function renderGameArena(snapshot) {
 
     // Turn Banner & Action Prompt
     if (isMyTurn) {
-        turnStatusBanner.className = "turn-status-banner my-turn";
-        if (snapshot.hasDrawnCard) {
-            turnStatusText.textContent = "★ Card Drawn! Play or PASS";
-            btnPassTurn.classList.remove('hidden');
-            if (btnDrawTurn) btnDrawTurn.classList.add('hidden');
-        } else {
-            turnStatusText.textContent = "★ YOUR TURN! Play or Tap Deck";
-            btnPassTurn.classList.add('hidden');
-            if (btnDrawTurn) btnDrawTurn.classList.remove('hidden');
+        if (turnStatusBanner) turnStatusBanner.className = "turn-status-banner my-turn";
+        if (turnStatusText) {
+            turnStatusText.textContent = snapshot.hasDrawnCard ? "★ Card Drawn! Play or PASS" : "★ YOUR TURN! Play or Tap Deck";
         }
+        if (btnPassTurn) btnPassTurn.classList.toggle('hidden', !snapshot.hasDrawnCard);
+        if (btnDrawTurn) btnDrawTurn.classList.toggle('hidden', snapshot.hasDrawnCard);
         playSound('turn');
     } else {
         const activePlayer = snapshot.players.find(p => p.playerId === snapshot.turnPlayerId);
         const name = activePlayer ? activePlayer.playerName : "Opponent";
-        turnStatusBanner.className = "turn-status-banner";
-        turnStatusText.textContent = `Waiting for ${name}'s turn...`;
-        btnPassTurn.classList.add('hidden');
+        if (turnStatusBanner) turnStatusBanner.className = "turn-status-banner";
+        if (turnStatusText) turnStatusText.textContent = `Waiting for ${name}'s turn...`;
+        if (btnPassTurn) btnPassTurn.classList.add('hidden');
         if (btnDrawTurn) btnDrawTurn.classList.add('hidden');
     }
 
@@ -542,52 +636,98 @@ function renderGameArena(snapshot) {
         showToast(`🎨 Table Color changed to ${colorName}!`);
     }
 
-    // Render Opponents & UNO Challenge Badges
-    opponentsArea.innerHTML = "";
-    snapshot.players.forEach(p => {
-        if (p.playerId !== state.playerId) {
-            const oppChip = document.createElement('div');
-            oppChip.className = `opponent-chip ${p.playerId === snapshot.turnPlayerId ? 'turn-active' : ''}`;
-            oppChip.setAttribute('data-player-id', p.playerId);
-            const initial = p.playerName.charAt(0).toUpperCase();
-            oppChip.innerHTML = `
-                <div class="opp-avatar">${initial}</div>
-                <div class="opp-info">
-                    <span class="opp-name">${p.playerName}</span>
-                    <span class="opp-cards">🂠 ${p.handCardCount} cards</span>
-                </div>
-            `;
+    // Render Opponents in Table Seats (North, West, East)
+    const opponents = snapshot.players.filter(p => p.playerId !== state.playerId);
+    if (seatNorth) seatNorth.innerHTML = "";
+    if (seatWest) seatWest.innerHTML = "";
+    if (seatEast) seatEast.innerHTML = "";
 
-            // UNO Penalty & Vulnerability Badges
-            if (p.handCardCount === 1) {
-                if (p.hasSaidUno) {
-                    const safeBadge = document.createElement('div');
-                    safeBadge.className = 'uno-safe-badge';
-                    safeBadge.textContent = 'UNO CALLED ✓';
-                    oppChip.appendChild(safeBadge);
-                } else if (p.isVulnerableToUno) {
-                    const catchBtn = document.createElement('button');
-                    catchBtn.className = 'btn-catch-uno';
-                    catchBtn.textContent = '🚨 CATCH UNO!';
-                    catchBtn.title = `Catch ${p.playerName} for not calling UNO! (3 Penalty Cards)`;
-                    catchBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        triggerCatchUno(p.playerId);
-                    });
-                    oppChip.appendChild(catchBtn);
-                }
+    // Seat allocation around round table:
+    // 1 opponent -> North
+    // 2 opponents -> West, East
+    // 3 opponents -> West, North, East
+    const seatMap = [
+        [seatNorth],
+        [seatWest, seatEast],
+        [seatWest, seatNorth, seatEast]
+    ];
+    const assignedSeats = seatMap[Math.min(opponents.length - 1, 2)] || [seatNorth];
+
+    opponents.forEach((p, idx) => {
+        const targetSeat = assignedSeats[idx];
+        if (!targetSeat) return;
+
+        const isTurn = p.playerId === snapshot.turnPlayerId;
+        const initial = p.playerName.charAt(0).toUpperCase();
+
+        const oppWrapper = document.createElement('div');
+        oppWrapper.className = 'seat-opponent-wrapper';
+        oppWrapper.setAttribute('data-player-id', p.playerId);
+
+        // Avatar chip (matching screenshot)
+        const chip = document.createElement('div');
+        chip.className = `player-chip-table ${isTurn ? 'turn-active' : ''}`;
+        chip.innerHTML = `
+            <div class="chip-avatar">${initial}</div>
+            <span class="chip-name">${p.playerName}</span>
+            <span class="chip-count">${p.handCardCount}</span>
+        `;
+
+        // Vulnerability / Catch UNO
+        if (p.handCardCount === 1) {
+            if (p.hasSaidUno) {
+                const safeBadge = document.createElement('div');
+                safeBadge.className = 'uno-safe-badge';
+                safeBadge.textContent = 'UNO ✓';
+                chip.appendChild(safeBadge);
+            } else if (p.isVulnerableToUno) {
+                const catchBtn = document.createElement('button');
+                catchBtn.className = 'btn-catch-uno';
+                catchBtn.textContent = '🚨 CATCH!';
+                catchBtn.title = `Catch ${p.playerName} for not calling UNO!`;
+                catchBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    triggerCatchUno(p.playerId);
+                });
+                chip.appendChild(catchBtn);
             }
-
-            opponentsArea.appendChild(oppChip);
         }
+        oppWrapper.appendChild(chip);
+
+        // Standing 3D card backs behind opponent
+        const fan = document.createElement('div');
+        fan.className = 'standing-cards-fan';
+        const cardCountToShow = Math.min(p.handCardCount, 8);
+        for (let i = 0; i < cardCountToShow; i++) {
+            const miniCard = document.createElement('div');
+            miniCard.className = 'mini-card-back';
+            fan.appendChild(miniCard);
+        }
+        oppWrapper.appendChild(fan);
+
+        targetSeat.appendChild(oppWrapper);
     });
 
-    // Check If I Should Call UNO (strictly 1 card left and haven't called yet)
+    // Render You (South Seat)
     const myPlayer = snapshot.players.find(p => p.playerId === state.playerId);
-    if (myPlayer && myPlayer.handCardCount === 1 && !myPlayer.hasSaidUno) {
-        btnSayUno.classList.remove('hidden');
-    } else {
-        btnSayUno.classList.add('hidden');
+    if (myPlayer) {
+        if (myAvatarInitial) myAvatarInitial.textContent = myPlayer.playerName.charAt(0).toUpperCase();
+        if (myPlayerNameDisplay) myPlayerNameDisplay.textContent = "You";
+        if (myCardCountBadge) myCardCountBadge.textContent = myPlayer.handCardCount;
+        if (handCounterPill) handCounterPill.textContent = `${myPlayer.handCardCount} cards`;
+        if (mySeatBadge) {
+            mySeatBadge.classList.toggle('turn-active', isMyTurn);
+        }
+        if (myTurnArrow) {
+            myTurnArrow.classList.toggle('hidden', !isMyTurn);
+        }
+
+        // UNO Button visibility
+        if (myPlayer.handCardCount === 1 && !myPlayer.hasSaidUno) {
+            btnSayUno.classList.remove('hidden');
+        } else {
+            btnSayUno.classList.add('hidden');
+        }
     }
 
     // Render Top Discard Card
@@ -597,10 +737,28 @@ function renderGameArena(snapshot) {
         topCardContainer.appendChild(cardElem);
     }
 
-    // Render Active Color & Ambient Table Aura
+    // Render Dynamic Discard Pile Layers (scattered underlays based on pile size)
+    renderDiscardPileLayers(snapshot.discardPileCount || 1);
+
+    // Render Active Color Indicator & Ambient Table Aura
     const activeCol = snapshot.activeColor;
-    activeColorDot.style.background = COLOR_HEX[activeCol] || '#ef4444';
-    activeColorName.textContent = COLOR_NAMES[activeCol] || 'RED';
+    const colorHex = COLOR_HEX[activeCol] || '#ef4444';
+    const colorName = COLOR_NAMES[activeCol] || 'Red';
+
+    // Style the glowing dot
+    activeColorDot.style.background = colorHex;
+    activeColorDot.style.boxShadow = `0 0 8px ${colorHex}, 0 0 18px ${colorHex}`;
+    activeColorDot.style.borderColor = colorHex;
+
+    // Style the color name text in the active color
+    activeColorName.textContent = colorName;
+    activeColorName.style.color = colorHex;
+
+    // Tint the pill border with a subtle color glow
+    if (activeColorIndicator) {
+        activeColorIndicator.style.borderColor = `${colorHex}44`;
+        activeColorIndicator.style.boxShadow = `0 4px 16px rgba(0,0,0,0.4), 0 0 12px ${colorHex}22, inset 0 1px 0 rgba(255,255,255,0.08)`;
+    }
 
     if (tableSurface) {
         tableSurface.classList.remove('aura-1', 'aura-2', 'aura-3', 'aura-4');
@@ -610,8 +768,9 @@ function renderGameArena(snapshot) {
     }
 
 
-    // Render Draw Pile Count
+    // Render Draw Pile Count & Dynamic Deck Layers
     drawPileCountBadge.textContent = snapshot.drawPile || 0;
+    renderDrawPileLayers(snapshot.drawPile || 0);
 
     // Render Player Hand with Parabolic Arc Fanning & Playable Highlighting
     const me = snapshot.players.find(p => p.playerId === state.playerId);
@@ -655,13 +814,33 @@ function renderGameArena(snapshot) {
         });
     }
 
-    // Check for Winner
-    const winner = snapshot.players.find(p => p.handCardCount === 0);
+    // Check for Winner (either 0 cards or all other players left/forfeited)
+    const activePlayers = snapshot.players.filter(p => p.isActive);
+    let winner = snapshot.players.find(p => p.handCardCount === 0);
+    let isForfeitWin = false;
+
+    if (!winner && activePlayers.length === 1 && snapshot.lastAction && snapshot.lastAction.includes("wins!")) {
+        winner = activePlayers[0];
+        isForfeitWin = true;
+    }
+
     if (winner) {
-        document.getElementById('winnerTitle').textContent = `${winner.playerName} Wins! 🎉`;
-        document.getElementById('winnerSubtitle').textContent = winner.playerId === state.playerId ? "Congratulations, you won!" : "Better luck next time!";
-        gameOverModal.classList.remove('hidden');
-        launchConfetti();
+        const isMe = (winner.playerId === state.playerId);
+        const titleEl = document.getElementById('winnerTitle');
+        const subtitleEl = document.getElementById('winnerSubtitle');
+
+        if (titleEl) {
+            titleEl.textContent = isForfeitWin 
+                ? (isMe ? "You Win by Forfeit! 🏆" : `${winner.playerName} Wins! 🏆`)
+                : `${winner.playerName} Wins! 🎉`;
+        }
+        if (subtitleEl) {
+            subtitleEl.textContent = isForfeitWin
+                ? "Opponent left the match."
+                : (isMe ? "Congratulations, you won!" : "Better luck next time!");
+        }
+        if (gameOverModal) gameOverModal.classList.remove('hidden');
+        if (isMe) launchConfetti();
     }
 }
 
@@ -680,7 +859,7 @@ function animateCardPlay(actorId, card, onComplete) {
         const handEl = myHandContainer.querySelector('.card:last-child') || myHandContainer;
         sourceRect = handEl.getBoundingClientRect();
     } else {
-        const oppEl = opponentsArea.querySelector(`[data-player-id="${actorId}"]`);
+        const oppEl = document.querySelector(`[data-player-id="${actorId}"]`);
         if (oppEl) sourceRect = oppEl.getBoundingClientRect();
     }
 
@@ -743,7 +922,7 @@ function animateCardDraw(actorId, count, onComplete) {
     if (actorId === state.playerId) {
         targetEl = myHandContainer;
     } else {
-        targetEl = opponentsArea.querySelector(`[data-player-id="${actorId}"]`);
+        targetEl = document.querySelector(`[data-player-id="${actorId}"]`);
     }
 
     if (!drawDeckEl || !targetEl) {
@@ -918,6 +1097,7 @@ function startTurnTimer(deadlineMs, durationSec = 60) {
         clearInterval(turnTimerInterval);
         turnTimerInterval = null;
     }
+    if (!turnTimerBadge || !turnTimerBar) return;
     if (!deadlineMs || deadlineMs <= 0) {
         turnTimerBadge.classList.add('hidden');
         return;
@@ -1008,3 +1188,41 @@ btnSayUno.addEventListener('click', triggerSayUno);
 btnReturnLobby.addEventListener('click', () => {
     window.location.href = "/";
 });
+
+// Floating HUD controls
+if (btnSoundToggle) {
+    btnSoundToggle.addEventListener('click', () => {
+        state.soundMuted = !state.soundMuted;
+        if (soundIcon) soundIcon.textContent = state.soundMuted ? '🔇' : '🔊';
+        showToast(state.soundMuted ? "Sound muted" : "Sound on");
+    });
+}
+
+if (hudRoomInfo) {
+    hudRoomInfo.addEventListener('click', () => {
+        if (!state.roomId) return;
+        const inviteUrl = `${window.location.origin}?room=${state.roomId}`;
+        navigator.clipboard.writeText(inviteUrl).then(() => {
+            showToast("Room invite link copied!");
+        }).catch(() => {
+            prompt("Copy room link:", inviteUrl);
+        });
+    });
+}
+
+if (btnLeaveRoom) {
+    btnLeaveRoom.addEventListener('click', () => {
+        if (confirm("Leave current match and return to lobby?")) {
+            window.location.href = "/";
+        }
+    });
+}
+
+const btnLobbySettings = document.getElementById('btnLobbySettings');
+if (btnLobbySettings) {
+    btnLobbySettings.addEventListener('click', () => {
+        state.soundMuted = !state.soundMuted;
+        showToast(state.soundMuted ? "🔇 Game audio muted" : "🔊 Game audio enabled");
+    });
+}
+

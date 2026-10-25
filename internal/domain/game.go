@@ -103,6 +103,67 @@ func (g *GameState) AddPlayer(name string, id int) error {
 	return nil
 }
 
+// PlayerLeft handles a player disconnecting or leaving the game
+func (g *GameState) PlayerLeft(playerID int) error {
+	idx := slices.IndexFunc(g.players, func(p *Player) bool {
+		return p.id == playerID
+	})
+	if idx == -1 {
+		return ErrPlayerNotFound
+	}
+
+	leavingPlayer := g.players[idx]
+
+	// 1. If in waiting lobby, remove player from slice
+	if g.stateName == StateWaitingForPlayers {
+		g.players = append(g.players[:idx], g.players[idx+1:]...)
+		return nil
+	}
+
+	// 2. If in active game: mark player as finished
+	leavingPlayer.UpdateFinishedPlaying(true)
+	leavingPlayer.handCards = nil
+
+	// Check remaining active players
+	var activePlayers []*Player
+	for _, p := range g.players {
+		if !p.FinishedPlaying() {
+			activePlayers = append(activePlayers, p)
+		}
+	}
+
+	// If 1 or 0 active players remain, game is over!
+	if len(activePlayers) <= 1 {
+		g.stateName = StateGameOver
+		if len(activePlayers) == 1 {
+			g.lastAction = fmt.Sprintf("🏆 %s left the match. %s wins!", leavingPlayer.name, activePlayers[0].name)
+		} else {
+			g.lastAction = "Match ended: All players left."
+		}
+		return nil
+	}
+
+	// If the leaving player held the current turn, advance turn to next player
+	if g.currentTurnIndex == idx {
+		g.hasDrawnCard = false
+		g.currentTurnIndex = findNextPlayerIndex(g.currentTurnIndex, g.direction, g.players)
+		g.resetTurnDeadline()
+	}
+	g.lastAction = fmt.Sprintf("⚠️ %s left the match.", leavingPlayer.name)
+	return nil
+}
+
+func (g *GameState) FirstPlayerID() int {
+	if len(g.players) > 0 {
+		return g.players[0].id
+	}
+	return -1
+}
+
+func (g *GameState) PlayersCount() int {
+	return len(g.players)
+}
+
 func (g *GameState) GameStart() error {
 	if len(g.players) < MIN_PLAYERS_IN_GAME {
 		return ErrNotEnoughPlayers
@@ -320,17 +381,18 @@ func (g *GameState) IsGameOver() bool {
 }
 
 type GetGameSnapShot struct {
-	PlayerId     int          `json:"playerId"`
-	TurnPlayerID int          `json:"turnPlayerId"`
-	ActiveColor  Color        `json:"activeColor"`
-	Direction    Direction    `json:"direction"`
-	DiscardPile  Card         `json:"discardPile"`
-	DrawPile     int          `json:"drawPile"`
-	Players      []PlayerInfo `json:"players"`
-	LastAction   string       `json:"lastAction"`
-	TurnDuration int          `json:"turnDuration"`
-	TurnDeadline int64        `json:"turnDeadline"`
-	HasDrawnCard bool         `json:"hasDrawnCard"`
+	PlayerId         int          `json:"playerId"`
+	TurnPlayerID     int          `json:"turnPlayerId"`
+	ActiveColor      Color        `json:"activeColor"`
+	Direction        Direction    `json:"direction"`
+	DiscardPile      Card         `json:"discardPile"`
+	DiscardPileCount int          `json:"discardPileCount"`
+	DrawPile         int          `json:"drawPile"`
+	Players          []PlayerInfo `json:"players"`
+	LastAction       string       `json:"lastAction"`
+	TurnDuration     int          `json:"turnDuration"`
+	TurnDeadline     int64        `json:"turnDeadline"`
+	HasDrawnCard     bool         `json:"hasDrawnCard"`
 }
 
 type PlayerInfo struct {
@@ -369,17 +431,18 @@ func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
 		turnPlayerID = g.players[g.currentTurnIndex].id
 	}
 	return &GetGameSnapShot{
-		PlayerId:     playerID,
-		TurnPlayerID: turnPlayerID,
-		ActiveColor:  g.discardPile.ActiveColor(),
-		Direction:    g.direction,
-		DiscardPile:  g.discardPile.cards[len(g.discardPile.cards)-1],
-		DrawPile:     len(g.drawpile.cards),
-		Players:      pInfo,
-		LastAction:   g.lastAction,
-		TurnDuration: 60,
-		TurnDeadline: g.turnDeadline,
-		HasDrawnCard: g.hasDrawnCard,
+		PlayerId:         playerID,
+		TurnPlayerID:     turnPlayerID,
+		ActiveColor:      g.discardPile.ActiveColor(),
+		Direction:        g.direction,
+		DiscardPile:      g.discardPile.cards[len(g.discardPile.cards)-1],
+		DrawPile:         len(g.drawpile.cards),
+		DiscardPileCount: len(g.discardPile.cards),
+		Players:          pInfo,
+		LastAction:       g.lastAction,
+		TurnDuration:     60,
+		TurnDeadline:     g.turnDeadline,
+		HasDrawnCard:     g.hasDrawnCard,
 	}
 }
 
@@ -410,17 +473,18 @@ func (g *GameState) DebugGameSnapshot() *GetGameSnapShot {
 		topDiscard = g.discardPile.cards[len(g.discardPile.cards)-1]
 	}
 	return &GetGameSnapShot{
-		PlayerId:     -1,
-		TurnPlayerID: turnPlayerID,
-		ActiveColor:  g.discardPile.ActiveColor(),
-		Direction:    g.direction,
-		DiscardPile:  topDiscard,
-		DrawPile:     len(g.drawpile.cards),
-		Players:      pInfo,
-		LastAction:   g.lastAction,
-		TurnDuration: 60,
-		TurnDeadline: g.turnDeadline,
-		HasDrawnCard: g.hasDrawnCard,
+		PlayerId:         -1,
+		TurnPlayerID:     turnPlayerID,
+		ActiveColor:      g.discardPile.ActiveColor(),
+		Direction:        g.direction,
+		DiscardPile:      topDiscard,
+		DrawPile:         len(g.drawpile.cards),
+		DiscardPileCount: len(g.discardPile.cards),
+		Players:          pInfo,
+		LastAction:       g.lastAction,
+		TurnDuration:     60,
+		TurnDeadline:     g.turnDeadline,
+		HasDrawnCard:     g.hasDrawnCard,
 	}
 }
 

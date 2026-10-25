@@ -30,6 +30,7 @@ type Room struct {
 	turnTimer     *time.Timer
 	turnSeq       uint64
 	handleTimeout func(roomID string)
+	onRoomEnded   func(roomID string)
 }
 
 func CreateNewRoom(hostName string, hostId int) *Room {
@@ -57,6 +58,12 @@ func (r *Room) State() RoomState {
 
 func (r *Room) GameState() *domain.GameState {
 	return r.gameState
+}
+
+func (r *Room) SetOnRoomEnded(fn func(string)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.onRoomEnded = fn
 }
 
 func (r *Room) StartGame(requestorId int) error {
@@ -89,6 +96,32 @@ func (r *Room) AddPlayer(name string, id int) error {
 	return r.gameState.AddPlayer(name, id)
 }
 
+func (r *Room) RemovePlayer(playerID int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	_ = r.gameState.PlayerLeft(playerID)
+
+	// If room was in waiting lobby and host left, transfer host to next player
+	if r.roomState == RoomStateWaiting && r.host == playerID {
+		newHost := r.gameState.FirstPlayerID()
+		if newHost != -1 {
+			r.host = newHost
+		}
+	}
+
+	// If game is now over
+	if r.gameState.IsGameOver() {
+		r.handleGameOver()
+		return
+	}
+
+	// If still playing, reset the turn timer for the new turn player
+	if r.roomState == RoomStatePlaying {
+		r.resetTurnTimer()
+	}
+}
+
 func (r *Room) PlayCard(requestorId int, card domain.Card, color domain.Color) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -100,10 +133,7 @@ func (r *Room) PlayCard(requestorId int, card domain.Card, color domain.Color) e
 		return err
 	}
 	if r.gameState.IsGameOver() {
-		r.roomState = RoomStateEnd
-		if r.turnTimer != nil {
-			r.turnTimer.Stop()
-		}
+		r.handleGameOver()
 		return nil
 	}
 	r.resetTurnTimer()
@@ -224,5 +254,30 @@ func (r *Room) resetTurnTimer() {
 		}
 		// Reset timer for the next player!
 		r.resetTurnTimer()
+	})
+}
+
+func (r *Room) handleGameOver() {
+	// make it idempotenet
+	// One player leaves
+	// after, say 2 seconds another player leaves
+
+	if r.roomState == RoomStateEnd {
+		return
+	}
+	r.roomState = RoomStateEnd
+	if r.turnTimer != nil {
+		r.turnTimer.Stop()
+		r.turnTimer = nil
+	}
+	time.AfterFunc(30*time.Second, func() {
+		r.mu.Lock()
+		fn := r.onRoomEnded
+		roomID := r.id
+		r.mu.Unlock()
+
+		if fn != nil {
+			fn(roomID)
+		}
 	})
 }

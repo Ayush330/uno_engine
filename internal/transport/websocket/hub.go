@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/Ayush330/uno_engine/internal/domain"
 	"github.com/Ayush330/uno_engine/internal/engine"
@@ -148,9 +149,32 @@ func (h *Hub) readPump(room *engine.Room, roomID string, playerID int, conn *Cli
 	defer func() {
 		h.Unregister(roomID, playerID)
 		conn.conn.Close()
+		room.RemovePlayer(playerID)
 		h.BroadCast(roomID)
 	}()
-
+	const pongWait = 60 * time.Second
+	const pingPeriod = (pongWait * 9) / 10
+	_ = conn.conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.conn.SetPongHandler(func(string) error {
+		// reset the deadline
+		_ = conn.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+	go func() {
+		ticker := time.NewTicker(pingPeriod)
+		defer ticker.Stop()
+		for range ticker.C {
+			err := conn.conn.WriteControl(
+				websocket.PingMessage,
+				nil,
+				time.Now().Add(5*time.Second),
+			)
+			if err != nil {
+				log.Println("Ping failed:", err)
+				return
+			}
+		}
+	}()
 	for {
 		var action ClientAction
 		err := conn.conn.ReadJSON(&action)
@@ -172,7 +196,6 @@ func (h *Hub) readPump(room *engine.Room, roomID string, playerID int, conn *Cli
 		case "CATCH_UNO":
 			actionErr = room.CatchUno(playerID, action.TargetID)
 		}
-
 		if actionErr != nil {
 			_ = conn.SendJSON(map[string]any{
 				"type":    "ERROR",

@@ -31,6 +31,9 @@ func (rm *RoomManager) AddRoom(hostName string, hostId int) (*Room, error) {
 	if _, ok := rm.rooms[room.id]; ok {
 		return nil, ErrRoomAlreadyExists
 	}
+	room.SetOnRoomEnded(func(roomID string) {
+		_ = rm.RemoveRoom(roomID)
+	})
 	rm.rooms[room.id] = room
 	return room, nil
 }

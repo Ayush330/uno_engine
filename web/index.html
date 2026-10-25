@@ -3,72 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UNO Multiplayer | Real-time Engine</title>
+    <title>UNO Online | Classic Multiplayer Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="app" class="app-container">
-        <!-- Floating Header -->
-        <header class="game-header">
-            <div class="logo">
-                <span class="logo-uno">UNO</span>
-                <span class="logo-badge">ENGINE</span>
-            </div>
-            <div id="headerRoomInfo" class="header-room-info hidden">
-                <div class="room-pill">
-                    <span class="pill-label">ROOM</span>
-                    <span id="roomCodeDisplay" class="pill-code">----</span>
-                    <button id="btnCopyInvite" class="btn-icon" title="Copy Invite Link">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <!-- SCREEN 1: LOBBY -->
+        <!-- SCREEN 1: LOBBY (MATCHING SCREENSHOT) -->
         <section id="lobbyScreen" class="screen lobby-screen active">
-            <div class="lobby-card glass-panel">
-                <div class="lobby-badge">Multiplayer Card Game</div>
-                <h1 class="lobby-title">Play UNO with Friends</h1>
-                <p class="lobby-subtitle">Real-time Go Engine with Zero Lag</p>
+            <!-- Decorative Framing Sweeps -->
+            <div class="lobby-corner-sweep sweep-yellow"></div>
+            <div class="lobby-corner-sweep sweep-red"></div>
 
-                <div class="lobby-tabs">
-                    <button id="tabCreate" class="tab-btn active">Create Room</button>
-                    <button id="tabJoin" class="tab-btn">Join Room</button>
+            <!-- Top Header Bar -->
+            <div class="lobby-top-bar">
+                <div class="lobby-uno-logo">
+                    <span class="uno-logo-text">UNO</span>
+                </div>
+                <button class="lobby-gear-btn" id="btnLobbySettings" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+            </div>
+
+            <div class="lobby-scroll-content">
+                <!-- 3D Fan of Cards Hero Graphics -->
+                <div class="lobby-cards-hero">
+                    <div class="hero-confetti-pill pill-red"></div>
+                    <div class="hero-confetti-pill pill-yellow"></div>
+                    <div class="hero-confetti-pill pill-blue"></div>
+                    <div class="hero-confetti-pill pill-green"></div>
+                    <div class="hero-confetti-pill pill-orange"></div>
+
+                    <!-- Fanned 3D Cards & Center Deck -->
+                    <div class="cards-fan-stage">
+                        <!-- Red 7 -->
+                        <div class="fan-card fan-card-red">
+                            <div class="card-inner">
+                                <span class="corner-num">7</span>
+                                <div class="oval-num">7</div>
+                                <span class="corner-num corner-num-bottom">7</span>
+                            </div>
+                        </div>
+
+                        <!-- Yellow +2 -->
+                        <div class="fan-card fan-card-yellow">
+                            <div class="card-inner">
+                                <span class="corner-num">+2</span>
+                                <div class="oval-num">+2</div>
+                                <span class="corner-num corner-num-bottom">+2</span>
+                            </div>
+                        </div>
+
+                        <!-- Green Reverse -->
+                        <div class="fan-card fan-card-green">
+                            <div class="card-inner">
+                                <span class="corner-num">⇄</span>
+                                <div class="oval-num">⇄</div>
+                                <span class="corner-num corner-num-bottom">⇄</span>
+                            </div>
+                        </div>
+
+                        <!-- Blue 3 -->
+                        <div class="fan-card fan-card-blue">
+                            <div class="card-inner">
+                                <span class="corner-num">3</span>
+                                <div class="oval-num">3</div>
+                                <span class="corner-num corner-num-bottom">3</span>
+                            </div>
+                        </div>
+
+                        <!-- Center 3D Deck Stack -->
+                        <div class="fan-deck-stack">
+                            <div class="deck-shadow-layer"></div>
+                            <div class="deck-layer l1"></div>
+                            <div class="deck-layer l2"></div>
+                            <div class="deck-layer l3"></div>
+                            <div class="deck-top-card">
+                                <div class="deck-red-oval">
+                                    <span class="deck-uno-logo">UNO</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Create Room Form -->
-                <form id="createRoomForm" class="lobby-form active">
-                    <div class="form-group">
-                        <label for="createPlayerName">Your Nickname</label>
-                        <input type="text" id="createPlayerName" placeholder="e.g. Maverick" required maxlength="15" autocomplete="off">
-                    </div>
-                    <button type="submit" id="btnCreateRoom" class="btn-primary">
-                        <span>Create Game Room</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    </button>
-                </form>
+                <!-- Hero Typography -->
+                <div class="lobby-hero-copy">
+                    <span class="hero-cursive-script">Good Friends</span>
+                    <h1 class="hero-display-title">
+                        <span class="sunburst-decor decor-left">ヾ</span>
+                        Play UNO<br>Together
+                        <span class="sunburst-decor decor-right">ﾉ</span>
+                    </h1>
+                    <p class="hero-playful-tagline">
+                        Real-time fun, zero lag, just UNO!
+                        <span class="yellow-underline-dots">••</span>
+                    </p>
+                </div>
 
-                <!-- Join Room Form -->
-                <form id="joinRoomForm" class="lobby-form">
-                    <div class="form-group">
-                        <label for="joinRoomCode">Room Code</label>
-                        <input type="text" id="joinRoomCode" placeholder="e.g. K9XQ" required maxlength="6" autocomplete="off" style="text-transform: uppercase;">
+                <!-- Floating Interactive Card with Segmented Capsule Tabs -->
+                <div class="lobby-interactive-card">
+                    <div class="segmented-pill-tabs">
+                        <button id="tabCreate" class="pill-tab-btn active">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            <span>Create Room</span>
+                        </button>
+                        <button id="tabJoin" class="pill-tab-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                            <span>Join Room</span>
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label for="joinPlayerName">Your Nickname</label>
-                        <input type="text" id="joinPlayerName" placeholder="e.g. Shadow" required maxlength="15" autocomplete="off">
-                    </div>
-                    <button type="submit" id="btnJoinRoom" class="btn-primary">
-                        <span>Enter Room</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    </button>
-                </form>
 
-                <div id="lobbyError" class="error-msg hidden"></div>
+                    <!-- Create Room Form -->
+                    <form id="createRoomForm" class="lobby-form active">
+                        <div class="capsule-field-group">
+                            <label for="createPlayerName">Your Nickname</label>
+                            <div class="capsule-input-container">
+                                <svg class="capsule-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                <input type="text" id="createPlayerName" placeholder="e.g. Maverick" required maxlength="15" autocomplete="off">
+                            </div>
+                        </div>
+                        <button type="submit" id="btnCreateRoom" class="btn-primary-capsule">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                            <span>Create Game Room</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </button>
+                    </form>
+
+                    <!-- Join Room Form -->
+                    <form id="joinRoomForm" class="lobby-form">
+                        <div class="capsule-field-group">
+                            <label for="joinRoomCode">Room Code</label>
+                            <div class="capsule-input-container">
+                                <svg class="capsule-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                <input type="text" id="joinRoomCode" placeholder="e.g. K9XQ" required maxlength="6" autocomplete="off" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="capsule-field-group">
+                            <label for="joinPlayerName">Your Nickname</label>
+                            <div class="capsule-input-container">
+                                <svg class="capsule-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                <input type="text" id="joinPlayerName" placeholder="e.g. Shadow" required maxlength="15" autocomplete="off">
+                            </div>
+                        </div>
+                        <button type="submit" id="btnJoinRoom" class="btn-primary-capsule">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                            <span>Enter Room</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </button>
+                    </form>
+
+                    <div id="lobbyError" class="error-msg hidden"></div>
+                </div>
             </div>
         </section>
 
@@ -78,7 +166,12 @@
                 <div class="waiting-header">
                     <div class="pulse-indicator"></div>
                     <h2>Waiting for Players</h2>
-                    <p class="code-banner">Share Code: <strong id="waitingRoomCode">----</strong></p>
+                    <div class="code-banner-wrapper">
+                        <p class="code-banner">Share Code: <strong id="waitingRoomCode">----</strong></p>
+                        <button id="btnCopyWaitingInvite" class="btn-copy-code" title="Copy Invite Link">
+                            <span>📋 Copy Link</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="player-slots" id="waitingPlayerSlots">
@@ -95,87 +188,132 @@
             </div>
         </section>
 
-        <!-- SCREEN 3: GAME TABLE -->
+        <!-- SCREEN 3: 3D TABLETOP ARENA (LIKE SCREENSHOT) -->
         <section id="gameScreen" class="screen game-screen hidden">
-            <!-- Opponents Row -->
-            <div id="opponentsArea" class="opponents-area">
-                <!-- Opponent avatars and cards generated dynamically -->
+            <!-- HUD TOP BAR (FLOATING GLASS PILLS) -->
+            <div class="hud-top-bar">
+                <div class="hud-top-left glass-pill" id="hudRoomInfo" title="Click to copy invite link">
+                    <span class="hud-uno-badge">UNO</span>
+                    <div class="hud-room-meta">
+                        <span class="hud-mode-name">Classic Mode</span>
+                        <span id="roomCodeDisplay" class="hud-room-code">Room ----</span>
+                    </div>
+                </div>
+
+                <div class="hud-top-right">
+                    <button id="btnSoundToggle" class="hud-icon-btn glass-pill" title="Toggle Sound">
+                        <span id="soundIcon">🔊</span>
+                    </button>
+                    <button id="btnLeaveRoom" class="hud-icon-btn glass-pill" title="Leave Game">
+                        <span>⚙️</span>
+                    </button>
+                </div>
             </div>
 
-            <!-- Central Arena (Piles + Status) -->
-            <div class="arena-center">
-                <!-- Action Event Announcement Banner -->
-                <div id="actionBanner" class="action-banner hidden">
+            <!-- THE CIRCULAR WARM WOODEN TABLE ARENA -->
+            <div class="wood-table-arena" id="woodTableArena">
+                <!-- Subtle Engraved Wood Direction Ring -->
+                <div class="table-engraving" id="tableEngraving">
+                    <svg class="engraved-arrows-svg" viewBox="0 0 400 400">
+                        <circle cx="200" cy="200" r="130" stroke="rgba(255,255,255,0.08)" stroke-width="2" stroke-dasharray="10 16" fill="none" />
+                        <polygon points="330,190 342,200 330,210" fill="rgba(255,255,255,0.15)" />
+                        <polygon points="70,210 58,200 70,190" fill="rgba(255,255,255,0.15)" />
+                        <polygon points="190,70 200,58 210,70" fill="rgba(255,255,255,0.15)" />
+                        <polygon points="210,330 200,342 190,330" fill="rgba(255,255,255,0.15)" />
+                    </svg>
+                </div>
+
+                <!-- SEAT NORTH (TOP OPPONENT) -->
+                <div class="table-seat seat-north" id="seatNorth">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- SEAT WEST (LEFT OPPONENT) -->
+                <div class="table-seat seat-west" id="seatWest">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- SEAT EAST (RIGHT OPPONENT) -->
+                <div class="table-seat seat-east" id="seatEast">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- TABLE CENTER: 3D DRAW DECK & PHYSICAL DISCARD PILE -->
+                <div class="table-center-piles">
+                    <!-- 3D Draw Deck (layers rendered dynamically by JS) -->
+                    <div id="drawPile" class="pile-container draw-pile-3d" title="Click to Draw a Card">
+                        <div id="drawPileLayers" class="draw-pile-layers">
+                            <!-- Dynamic deck layers inserted by JS -->
+                        </div>
+                        <div class="card card-back top-deck-card">
+                            <div class="card-back-red">
+                                <div class="card-back-ellipse">
+                                    <span class="card-back-uno-text">UNO</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span id="drawPileCountBadge" class="deck-count-badge">0</span>
+                    </div>
+
+                    <!-- Physical Discard Pile (underlays rendered dynamically by JS) -->
+                    <div id="discardPile" class="pile-container discard-pile-3d">
+                        <div id="discardPileLayers" class="discard-pile-layers">
+                            <!-- Dynamic underlay layers inserted by JS -->
+                        </div>
+                        <div id="topCardContainer" class="top-card-wrapper">
+                            <!-- Rendered Top Discard Card -->
+                        </div>
+                        <span id="discardPileCountBadge" class="deck-count-badge discard-count-badge">0</span>
+                    </div>
+                </div>
+
+                <!-- Active Color Indicator (floating glass pill) -->
+                <div class="active-color-pill glass-pill" id="activeColorIndicator">
+                    <div class="color-glow-dot" id="activeColorDot">
+                        <div class="dot-pulse-ring"></div>
+                    </div>
+                    <span id="activeColorName" class="active-color-label">RED</span>
+                </div>
+
+                <!-- Action Announcement Toast (Floating in table center) -->
+                <div id="actionBanner" class="action-banner-table hidden">
                     <span id="actionBannerText">Action Announcement</span>
                 </div>
 
-                <div class="turn-status-banner" id="turnStatusBanner">
-                    <div class="turn-status-content">
-                        <span id="turnStatusText">Waiting for match...</span>
-                        <span id="turnTimerBadge" class="turn-timer-badge hidden">60s</span>
+                <!-- SEAT SOUTH: PLAYER AVATAR & FANNED HAND -->
+                <div class="table-seat seat-south" id="seatSouth">
+                    <div class="my-player-badge glass-pill" id="mySeatBadge">
+                        <div class="my-avatar" id="myAvatarInitial">Y</div>
+                        <span class="my-name" id="myPlayerNameDisplay">You</span>
+                        <span class="my-card-count" id="myCardCountBadge">0</span>
+                        <div class="my-turn-arrow hidden" id="myTurnArrow">▲</div>
                     </div>
-                    <div class="turn-timer-bar-track">
-                        <div id="turnTimerBar" class="turn-timer-bar"></div>
-                    </div>
-                </div>
-
-                <div class="table-surface glass-panel" id="tableSurface">
-                    <!-- Shockwave Ripple -->
-                    <div id="tableShockwave" class="table-shockwave"></div>
-
-                    <!-- Piles Container -->
-                    <div class="table-piles">
-                        <!-- Draw Pile Deck -->
-                        <div class="pile-wrapper">
-                            <div id="drawPile" class="pile-container draw-pile" title="Click to Draw a Card">
-                                <div class="card card-back stacked-3"></div>
-                                <div class="card card-back stacked-2"></div>
-                                <div class="card card-back top-card">
-                                    <div class="card-back-labyrinth"></div>
-                                    <div class="card-back-logo">UNO</div>
-                                </div>
-                                <span id="drawPileCountBadge" class="pile-count-badge">0</span>
-                            </div>
-                        </div>
-
-                        <!-- Discard Pile (Top Card) -->
-                        <div class="pile-wrapper">
-                            <div id="discardPile" class="pile-container discard-pile">
-                                <div class="discard-pedestal"></div>
-                                <div id="topCardContainer" class="top-card-wrapper">
-                                    <!-- Rendered Top Card -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Active Color Badge -->
-                    <div class="active-color-indicator" id="activeColorIndicator">
-                        <div class="color-dot" id="activeColorDot"></div>
-                        <span class="active-color-title">ACTIVE:</span>
-                        <span id="activeColorName">RED</span>
+                    
+                    <div id="myHandContainer" class="my-hand-container-3d">
+                        <!-- Fanned Interactive Cards -->
                     </div>
                 </div>
             </div>
 
-            <!-- Player's Hand Tray (Bottom) -->
-            <div class="player-hand-tray">
-                <div class="hand-meta">
-                    <div class="hand-meta-left">
-                        <span class="hand-label">Your Hand</span>
-                        <span id="myCardCountBadge" class="card-count-tag">0 cards</span>
-                    </div>
-                    <div class="hand-action-buttons">
-                        <button id="btnSayUno" class="btn-say-uno hidden" title="Call UNO!">
-                            <span>UNO! 🔥</span>
-                        </button>
-                        <button id="btnPassTurn" class="btn-pass-action hidden" title="Pass Turn">
-                            <span>Pass Turn ⏭</span>
-                        </button>
-                    </div>
+            <!-- HUD BOTTOM CONTROLS -->
+            <div class="hud-bottom-bar">
+                <!-- Bottom-Left: Hand Count Pill -->
+                <div class="hud-bottom-left glass-pill">
+                    <span class="hud-card-icon">🎴</span>
+                    <span id="handCounterPill">0 cards</span>
                 </div>
-                <div id="myHandContainer" class="my-hand-container">
-                    <!-- Your interactive cards rendered dynamically -->
+
+                <!-- Bottom-Right: Call UNO! & Draw Card buttons -->
+                <div class="hud-bottom-right">
+                    <button id="btnSayUno" class="btn-hud-uno hidden" title="Call UNO!">
+                        <span>🃏 Call UNO!</span>
+                    </button>
+                    <button id="btnDrawTurn" class="btn-hud-draw" title="Draw a Card">
+                        <span>🎴 Draw Card</span>
+                    </button>
+                    <button id="btnPassTurn" class="btn-hud-pass hidden" title="Pass Turn">
+                        <span>⏭ Pass</span>
+                    </button>
                 </div>
             </div>
         </section>

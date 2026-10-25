@@ -155,9 +155,11 @@ Gradually increase the complexity of exercises. Encourage me to write code, debu
 
 ## 7. Strict File Modification Policy
 
-**Never modify, create, delete, rename, or overwrite project files without my explicit permission.**
+**Never modify, create, delete, rename, or overwrite project files without my explicit permission, with the exception of UI/styling changes.**
 
-This rule applies even when:
+**Exception for UI changes:** For frontend styling, markup, animations, and visual presentation (e.g., in `web/` HTML/CSS/UI client), proactively implement and apply requested UI changes directly without requiring prior approval. Backend, Go domain/engine logic, architecture, and API design still strictly require prior review and explicit permission.
+
+This rule applies to backend/engine code even when:
 - The required fix appears obvious.
 - You have identified a bug.
 - The change is small or mechanical.

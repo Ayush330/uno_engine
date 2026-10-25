@@ -1,0 +1,22 @@
+# Binaries
+bin/
+uno-server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.txt
+
+# OS and Editor artifacts
+.DS_Store
+.idea/
+.vscode/
+
+# Logs and temporary files
+*.log
+tmp/

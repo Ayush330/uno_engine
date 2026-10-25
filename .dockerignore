@@ -1,0 +1,11 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+AGENTS.md
+*.md
+bin/
+tmp/
+*.log
+.DS_Store

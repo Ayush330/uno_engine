@@ -24,3 +24,7 @@ primary_region = "sin"
   size = "shared-cpu-1x"
   memory = "256mb"
   cpus = 1
+
+[metrics]
+  port = 8080
+  path = "/metrics"

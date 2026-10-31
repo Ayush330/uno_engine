@@ -60,6 +60,13 @@ func (r *Room) GameState() *domain.GameState {
 	return r.gameState
 }
 
+func (r *Room) PlayerCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.gameState.PlayersCount()
+}
+
+
 func (r *Room) SetOnRoomEnded(fn func(string)) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

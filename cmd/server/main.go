@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Ayush330/uno_engine/internal/engine"
+	"github.com/Ayush330/uno_engine/internal/telemetry"
 	customhttp "github.com/Ayush330/uno_engine/internal/transport/http"
 	customws "github.com/Ayush330/uno_engine/internal/transport/websocket"
 )
@@ -22,6 +23,18 @@ func main() {
 
 	hub := customws.CreateNewHub(roomManager)
 	mux.HandleFunc("/ws", hub.ServeWs)
+
+
+	// otel
+	otelCfg := telemetry.Config{
+		GetActiveGames:   roomManager.RoomCount,
+		GetActivePlayers: roomManager.TotalPlayerCount,
+	}
+	metricsHandler, shutdownOtel, err := telemetry.Setup(otelCfg)
+	if err != nil {
+		log.Fatalf("failed to set up telemetry: %v", err)
+	}
+	mux.Handle("/metrics", metricsHandler)
 
 	// 3. Static Web Client
 	// Using AI for this.....
@@ -49,6 +62,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = server.Shutdown(ctx)
+	if err := shutdownOtel(ctx); err != nil {
+		log.Printf("Error shutting down telemetry: %v", err)
+	}
 }
 
 func enableCORS(next http.Handler) http.Handler {

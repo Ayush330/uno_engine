@@ -76,3 +76,22 @@ func (rm *RoomManager) GetAllRooms() []*GetAllRoomDTO {
 	}
 	return dtos
 }
+
+// RoomCount returns the current count of active rooms under a read lock.
+func (rm *RoomManager) RoomCount() int {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+	return len(rm.rooms)
+}
+
+// TotalPlayerCount returns the total number of players across all rooms.
+func (rm *RoomManager) TotalPlayerCount() int {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+	count := 0
+	for _, room := range rm.rooms {
+		count += room.PlayerCount()
+	}
+	return count
+}
+

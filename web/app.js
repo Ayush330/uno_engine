@@ -724,8 +724,9 @@ function renderGameArena(snapshot) {
             myHandContainer.classList.toggle('hand-waiting', !isMyTurn);
         }
 
-        // UNO Button visibility
-        if (myPlayer.handCardCount === 1 && !myPlayer.hasSaidUno) {
+        // UNO Button visibility: Show when holding 2 cards on your turn, or 1 card if not yet called
+        const canCallUno = (myPlayer.handCardCount === 2 && isMyTurn) || (myPlayer.handCardCount === 1);
+        if (canCallUno && !myPlayer.hasSaidUno) {
             btnSayUno.classList.remove('hidden');
         } else {
             btnSayUno.classList.add('hidden');

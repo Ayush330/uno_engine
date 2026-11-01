@@ -241,10 +241,14 @@ func (g *GameState) PlayCard(playerId int, card Card, color Color) error {
 		g.vulnerablePlayerID = -1
 		g.unoGraceDeadline = 0
 	} else if len(player.handCards) == 1 {
-		// Only one card is left: start 2.5s grace period!
-		player.SetSaidUno(false)
-		g.vulnerablePlayerID = player.id
-		g.unoGraceDeadline = time.Now().Add(2500 * time.Millisecond).UnixMilli()
+		// Down to 1 card: If they didn't pre-call UNO, they are immediately vulnerable to being caught!
+		if !player.HasSaidUno() {
+			g.vulnerablePlayerID = player.id
+			g.lastAction += fmt.Sprintf(" ⚠️ %s forgot to call UNO!", player.name)
+		} else {
+			g.vulnerablePlayerID = -1
+		}
+		g.unoGraceDeadline = 0
 	} else {
 		// Hand has > 1 card: can never be vulnerable or have UNO
 		player.SetSaidUno(false)
@@ -421,8 +425,7 @@ func (g *GameState) GetGameSnapShot(playerID int) *GetGameSnapShot {
 			HasSaidUno:    g.players[i].HasSaidUno(),
 			IsVulnerableToUno: (g.players[i].id == g.vulnerablePlayerID &&
 				len(g.players[i].handCards) == 1 &&
-				!g.players[i].HasSaidUno() &&
-				time.Now().UnixMilli() >= g.unoGraceDeadline),
+				!g.players[i].HasSaidUno()),
 		}
 		pInfo[i] = info
 	}
@@ -459,8 +462,7 @@ func (g *GameState) DebugGameSnapshot() *GetGameSnapShot {
 			HasSaidUno:    g.players[i].HasSaidUno(),
 			IsVulnerableToUno: (g.players[i].id == g.vulnerablePlayerID &&
 				len(g.players[i].handCards) == 1 &&
-				!g.players[i].HasSaidUno() &&
-				time.Now().UnixMilli() >= g.unoGraceDeadline),
+				!g.players[i].HasSaidUno()),
 		}
 		pInfo[i] = info
 	}
@@ -546,13 +548,17 @@ func (g *GameState) SayUno(playerID int) error {
 	if player == nil {
 		return ErrPlayerNotFound
 	}
-	if player.FinishedPlaying() || len(player.handCards) != 1 {
-		return errors.New("domain: can only shout UNO when holding exactly 1 card")
+	if player.FinishedPlaying() || len(player.handCards) > 2 || len(player.handCards) == 0 {
+		return errors.New("domain: can only call UNO when holding 1 or 2 cards")
 	}
 	player.SetSaidUno(true)
 	g.vulnerablePlayerID = -1
 	g.unoGraceDeadline = 0
-	g.lastAction = fmt.Sprintf("🔥 %s shouted UNO!", player.name)
+	if len(player.handCards) == 2 {
+		g.lastAction = fmt.Sprintf("🔥 %s pre-called UNO!", player.name)
+	} else {
+		g.lastAction = fmt.Sprintf("🔥 %s shouted UNO!", player.name)
+	}
 	return nil
 }
 
@@ -564,10 +570,6 @@ func (g *GameState) CatchUno(accuserPlayerID int, targetPlayerID int) error {
 	target := g.findPlayerByID(targetPlayerID)
 	if target == nil {
 		return ErrPlayerNotFound
-	}
-	// grace period has not completed, reject the clainmmmmmm...
-	if time.Now().UnixMilli() < g.unoGraceDeadline {
-		return errors.New("domain: player is still within UNO grace period")
 	}
 
 	if g.vulnerablePlayerID != targetPlayerID || target.FinishedPlaying() || len(target.handCards) != 1 || target.HasSaidUno() {

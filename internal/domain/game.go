@@ -19,6 +19,7 @@ var (
 	ErrInvalidCardPlayed     = errors.New("domain: Invalid card played")
 	ErrPlayerNotFound        = errors.New("domain: Player not found")
 	ErrNextPlayerNotFound    = errors.New("domain: Next Player Turn Not Found")
+	ErrRoomFull              = errors.New("domain: room is already full (maximum 4 players)")
 )
 
 const (
@@ -93,7 +94,10 @@ func NewGameState(id int) *GameState {
 // Add a Player
 func (g *GameState) AddPlayer(name string, id int) error {
 	if g.stateName != StateWaitingForPlayers {
-		return errors.New("error: cannot add player, game has already started")
+		return ErrGameAlreadyStarted
+	}
+	if len(g.players) >= MAX_PLAYERS_IN_GAME {
+		return ErrRoomFull
 	}
 	playerRec := &Player{
 		name: name,
@@ -167,6 +171,9 @@ func (g *GameState) PlayersCount() int {
 func (g *GameState) GameStart() error {
 	if len(g.players) < MIN_PLAYERS_IN_GAME {
 		return ErrNotEnoughPlayers
+	}
+	if len(g.players) > MAX_PLAYERS_IN_GAME {
+		return ErrRoomFull
 	}
 	if g.stateName != StateWaitingForPlayers {
 		return ErrGameAlreadyStarted
